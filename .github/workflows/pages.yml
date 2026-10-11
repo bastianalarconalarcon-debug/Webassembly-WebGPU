@@ -1,0 +1,70 @@
+# Compila el juego (Rust -> WebAssembly), corre las pruebas y publica la
+# carpeta web/ en GitHub Pages.
+#
+# Para activarlo una sola vez: Settings -> Pages -> Build and deployment ->
+# Source: "GitHub Actions". Mientras Pages no esté activado, este workflow
+# compila y prueba igual, pero se salta la publicación (sin marcar error).
+name: Publicar en GitHub Pages
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      publish: ${{ steps.check.outputs.publish }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar Rust para WebAssembly
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Pruebas
+        run: cargo test
+
+      - name: Compilar el juego
+        run: ./build.sh
+
+      - name: ¿Está activado GitHub Pages?
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ github.ref_name }}" != "${{ github.event.repository.default_branch }}" ]; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Sólo se publica desde la rama principal (${{ github.event.repository.default_branch }})."
+          elif gh api "repos/${{ github.repository }}/pages" --silent 2>/dev/null; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::GitHub Pages no está activado. Actívalo en Settings -> Pages -> Source: GitHub Actions."
+          fi
+
+      - name: Preparar sitio
+        if: steps.check.outputs.publish == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+
+  deploy:
+    needs: build
+    if: needs.build.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publicar
+        id: deployment
+        uses: actions/deploy-pages@v4
