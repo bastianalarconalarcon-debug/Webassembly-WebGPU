@@ -2,7 +2,7 @@
 //! Todo lo que "explota" de alegría cuando la niña toca algo.
 
 use crate::gfx::{Gfx, Shape};
-use crate::math::{hsv, v2, Rgba, V2, TAU, WHITE};
+use crate::math::{hsv, v2, Rgba, TAU, V2, WHITE};
 use crate::rng::Rng;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -218,7 +218,11 @@ impl Fx {
                 rng.range(0.9, 1.4),
                 rng.range(4.0, 7.0),
                 c.lighter(rng.range(0.0, 0.4)),
-                Look::Shape(if i % 3 == 0 { Shape::Star } else { Shape::Circle }),
+                Look::Shape(if i % 3 == 0 {
+                    Shape::Star
+                } else {
+                    Shape::Circle
+                }),
             );
             p.gravity = 180.0;
             p.drag = 1.4;

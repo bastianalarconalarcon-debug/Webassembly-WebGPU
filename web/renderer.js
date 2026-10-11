@@ -3,6 +3,7 @@
 // todo. El modo Pintar usa además una textura que nunca se borra.
 
 import { GlyphAtlas } from './atlas.js';
+import { Voxels } from './voxels.js';
 
 const INSTANCE_FLOATS = 12; // debe coincidir con `Instance` en src/gfx.rs
 const INSTANCE_BYTES = INSTANCE_FLOATS * 4;
@@ -100,6 +101,9 @@ export class Renderer {
       });
     this.spritePipeline = spritePipeline(this.format);
     this.paintPipeline = this.format === 'rgba8unorm' ? this.spritePipeline : spritePipeline('rgba8unorm');
+
+    // Escena 3D (juego Construir): se compila en segundo plano (initVoxels).
+    this.voxels = new Voxels(device, this.format);
 
     this.sceneBuf = null;
     this.sceneCap = 0;
@@ -232,7 +236,13 @@ export class Renderer {
       pass.end();
     }
 
-    // 2) Pantalla: fondo, pintura y figuras.
+    // 2) Escena 3D (si el juego la pidió y ya está lista): sombra + cubos +
+    //    cielo, directo en la pantalla. Reemplaza al fondo 2D.
+    const target = this.context.getCurrentTexture();
+    const use3d = !!frame.d3 && this.voxels.ready;
+    if (use3d) this.voxels.encode(enc, target, frame.d3);
+
+    // 3) Pantalla: fondo, pintura y figuras (con 3D: sólo figuras, encima).
     const sceneCount = frame.scene.length / INSTANCE_FLOATS;
     let sceneBuf = null;
     if (sceneCount > 0) {
@@ -240,15 +250,17 @@ export class Renderer {
       device.queue.writeBuffer(sceneBuf, 0, frame.scene);
     }
     const pass = enc.beginRenderPass({
-      colorAttachments: [{ view: this.context.getCurrentTexture().createView(), loadOp: 'clear', storeOp: 'store', clearValue: [1, 1, 1, 1] }],
+      colorAttachments: [{ view: target.createView(), loadOp: use3d ? 'load' : 'clear', storeOp: 'store', clearValue: [1, 1, 1, 1] }],
     });
     pass.setBindGroup(0, this.mainBindGroup);
-    pass.setPipeline(this.bgPipeline);
-    pass.draw(3);
-    if (frame.showPaint) {
-      pass.setPipeline(this.compositePipeline);
-      pass.setBindGroup(1, this.paintBindGroup);
+    if (!use3d) {
+      pass.setPipeline(this.bgPipeline);
       pass.draw(3);
+      if (frame.showPaint) {
+        pass.setPipeline(this.compositePipeline);
+        pass.setBindGroup(1, this.paintBindGroup);
+        pass.draw(3);
+      }
     }
     if (sceneCount > 0) {
       pass.setPipeline(this.spritePipeline);

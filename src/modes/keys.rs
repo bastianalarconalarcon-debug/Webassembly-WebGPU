@@ -124,8 +124,13 @@ impl Keys {
     }
 
     fn press_letter(&mut self, cx: &mut Cx, c: char) {
-        let Some(info) = vocab::letter_info(c) else { return };
-        let idx = vocab::LETTERS.iter().position(|l| l.upper == info.upper).unwrap_or(0);
+        let Some(info) = vocab::letter_info(c) else {
+            return;
+        };
+        let idx = vocab::LETTERS
+            .iter()
+            .position(|l| l.upper == info.upper)
+            .unwrap_or(0);
         self.demote(cx);
         self.word_turn += 1;
         let word = info.words[self.word_turn % info.words.len()];
@@ -135,7 +140,12 @@ impl Keys {
 
         let lp = v2(cx.w * 0.33, cx.h * 0.52);
         let ep = v2(cx.w * 0.68, cx.h * 0.52);
-        let mut letter = Item::new(Look::Text(info.upper.to_string(), color), lp, r, info.name.to_string());
+        let mut letter = Item::new(
+            Look::Text(info.upper.to_string(), color),
+            lp,
+            r,
+            info.name.to_string(),
+        );
         letter.rot = cx.rng.range(-0.15, 0.15);
         self.items.push(letter);
         let mut pic = Item::new(Look::Emoji(word.emoji), ep, r * 0.8, word_speech(&word));
@@ -143,7 +153,12 @@ impl Keys {
         self.items.push(pic);
 
         cx.fx.confetti(&mut cx.rng, lp, 26, 550.0);
-        cx.au.note(pentatonic(idx as i32 % 10 + 5, 60.0), Inst::Marimba, lp.x, 0.6);
+        cx.au.note(
+            pentatonic(idx as i32 % 10 + 5, 60.0),
+            Inst::Marimba,
+            lp.x,
+            0.6,
+        );
         if cx.au.since_say() > 0.35 || !cx.au.speaking {
             cx.au.say(info.name);
         }
@@ -157,22 +172,40 @@ impl Keys {
         self.target_hue = d as f32 / 10.0;
         let dp = v2(cx.w * 0.18, cx.h * 0.52);
         let text = d.to_string();
-        self.items.push(Item::new(Look::Text(text, color), dp, r * 0.9, vocab::NUMBERS[d as usize].to_string()));
+        self.items.push(Item::new(
+            Look::Text(text, color),
+            dp,
+            r * 0.9,
+            vocab::NUMBERS[d as usize].to_string(),
+        ));
         cx.fx.confetti(&mut cx.rng, dp, 20, 450.0);
-        cx.au.note(pentatonic(d as i32 + 3, 60.0), Inst::Bell, dp.x, 0.6);
+        cx.au
+            .note(pentatonic(d as i32 + 3, 60.0), Inst::Bell, dp.x, 0.6);
         let word = *cx.rng.pick(vocab::COUNTABLES);
         if d == 0 {
             cx.au.say("¡Cero! No hay nada.");
-            cx.fx.ripple(v2(cx.w * 0.62, cx.h * 0.52), r, WHITE.alpha(0.8));
+            cx.fx
+                .ripple(v2(cx.w * 0.62, cx.h * 0.52), r, WHITE.alpha(0.8));
             return;
         }
         cx.au.say(&format!("¡{}!", vocab::NUMBERS[d as usize]));
-        self.counting = Some(Counting { n: d, shown: 0, timer: 0.9, word });
+        self.counting = Some(Counting {
+            n: d,
+            shown: 0,
+            timer: 0.9,
+            word,
+        });
     }
 
     /// Posición del objeto `i` de `n` en una grilla a la derecha.
     fn count_slot(cx: &Cx, i: u32, n: u32) -> (V2, f32) {
-        let cols = if n <= 3 { n } else if n <= 6 { 3 } else { (n as f32 / 2.0).ceil() as u32 };
+        let cols = if n <= 3 {
+            n
+        } else if n <= 6 {
+            3
+        } else {
+            (n as f32 / 2.0).ceil() as u32
+        };
         let rows = n.div_ceil(cols);
         let (x0, x1) = (cx.w * 0.36, cx.w * 0.95);
         let (y0, y1) = (cx.h * 0.22, cx.h * 0.85);
@@ -182,12 +215,17 @@ impl Keys {
         // Centrar la última fila si está incompleta.
         let in_row = if r == rows - 1 { n - r * cols } else { cols };
         let offset = (cols - in_row) as f32 * cw * 0.5;
-        let p = v2(x0 + offset + (c as f32 + 0.5) * cw, y0 + (r as f32 + 0.5) * ch);
+        let p = v2(
+            x0 + offset + (c as f32 + 0.5) * cw,
+            y0 + (r as f32 + 0.5) * ch,
+        );
         (p, (cw.min(ch) * 0.38).min(cx.unit() * 0.12))
     }
 
     fn tick_counting(&mut self, cx: &mut Cx) {
-        let Some(c) = self.counting.as_mut() else { return };
+        let Some(c) = self.counting.as_mut() else {
+            return;
+        };
         c.timer -= cx.dt;
         if c.timer > 0.0 {
             return;
@@ -200,7 +238,12 @@ impl Keys {
             self.items.push(it);
             let col = hsv(cx.rng.f(), 0.6, 1.0);
             cx.fx.sparkle(&mut cx.rng, p, 8, col, 40.0);
-            cx.au.note(pentatonic(c.shown as i32 + 4, 60.0), Inst::Marimba, p.x, 0.5);
+            cx.au.note(
+                pentatonic(c.shown as i32 + 4, 60.0),
+                Inst::Marimba,
+                p.x,
+                0.5,
+            );
             cx.au.say(vocab::NUMBERS[c.shown as usize]);
             c.timer = 0.85;
         } else {
@@ -221,7 +264,12 @@ impl Keys {
         if k.is("Space") {
             self.demote(cx);
             let p = v2(cx.w * 0.5, cx.h * 0.78);
-            let bar = Item::new(Look::Shape(Shape::RoundRect, hsv(cx.rng.f(), 0.5, 1.0), v2(4.0, 0.7)), p, r * 0.55, "espacio".into());
+            let bar = Item::new(
+                Look::Shape(Shape::RoundRect, hsv(cx.rng.f(), 0.5, 1.0), v2(4.0, 0.7)),
+                p,
+                r * 0.55,
+                "espacio".into(),
+            );
             self.items.push(bar);
             for _ in 0..14 {
                 let mut b = crate::fx::Particle::new(
@@ -256,7 +304,12 @@ impl Keys {
             cx.au.sfx(Sfx::Whoosh, 1.0, cx.w * 0.5);
         } else if let Some(dir) = k.arrow() {
             let c = cx.center();
-            let mut a = Item::new(Look::Shape(Shape::Arrow, hsv(cx.rng.f(), 0.75, 1.0), v2(1.0, 0.7)), c, r * 0.6, String::new());
+            let mut a = Item::new(
+                Look::Shape(Shape::Arrow, hsv(cx.rng.f(), 0.75, 1.0), v2(1.0, 0.7)),
+                c,
+                r * 0.6,
+                String::new(),
+            );
             a.rot = dir.angle();
             a.vel = dir * 900.0;
             a.fading = true;
@@ -274,11 +327,18 @@ impl Keys {
             cx.au.sfx(Sfx::Boing, 1.3, cx.w * 0.5);
         } else {
             // Cualquier otra tecla: una onda de colores en algún lugar.
-            let p = cx.rng.point(cx.w * 0.15, cx.h * 0.2, cx.w * 0.85, cx.h * 0.85);
+            let p = cx
+                .rng
+                .point(cx.w * 0.15, cx.h * 0.2, cx.w * 0.85, cx.h * 0.85);
             let c = hsv(cx.rng.f(), 0.7, 1.0);
             cx.fx.ripple(p, 120.0, c);
             cx.fx.confetti(&mut cx.rng, p, 16, 400.0);
-            cx.au.note(pentatonic(cx.rng.int(10) as i32 + 3, 60.0), Inst::Bell, p.x, 0.5);
+            cx.au.note(
+                pentatonic(cx.rng.int(10) as i32 + 3, 60.0),
+                Inst::Bell,
+                p.x,
+                0.5,
+            );
         }
     }
 
@@ -287,9 +347,19 @@ impl Keys {
         let r = Keys::hero_r(cx);
         let p = v2(cx.w * 0.5, cx.h * 0.52);
         let color = hsv(cx.rng.f(), 0.7, 1.0);
-        self.items.push(Item::new(Look::Text(glyph.to_string(), color), p, r, name.to_string()));
+        self.items.push(Item::new(
+            Look::Text(glyph.to_string(), color),
+            p,
+            r,
+            name.to_string(),
+        ));
         cx.fx.confetti(&mut cx.rng, p, 18, 450.0);
-        cx.au.note(pentatonic(cx.rng.int(10) as i32 + 3, 60.0), Inst::Pluck, p.x, 0.5);
+        cx.au.note(
+            pentatonic(cx.rng.int(10) as i32 + 3, 60.0),
+            Inst::Pluck,
+            p.x,
+            0.5,
+        );
         cx.au.say(&format!("¡{}!", name));
     }
 
@@ -303,7 +373,19 @@ impl Keys {
         let rot = it.rot + wob;
         match &it.look {
             Look::Text(s, c) => {
-                cx.g.text(s, it.pos + v2(r * 0.03, r * 0.1), r, rot, Rgba { r: 0.1, g: 0.05, b: 0.3, a: 0.22 * a }, 0.0);
+                cx.g.text(
+                    s,
+                    it.pos + v2(r * 0.03, r * 0.1),
+                    r,
+                    rot,
+                    Rgba {
+                        r: 0.1,
+                        g: 0.05,
+                        b: 0.3,
+                        a: 0.22 * a,
+                    },
+                    0.0,
+                );
                 cx.g.text(s, it.pos, r, rot, c.alpha(a), 0.14);
             }
             Look::Emoji(e) => {
@@ -315,12 +397,44 @@ impl Keys {
                 if *s == Shape::RoundRect {
                     // Tecla: base oscura abajo, cara clara arriba.
                     let depth = v2(0.0, half.y * 0.35);
-                    cx.g.shape_full(*s, it.pos + depth, half + v2(5.0, 5.0), it.rot, c.darker(0.45).alpha(a), 0.35, 0.0);
-                    cx.g.shape_full(*s, it.pos, half + v2(5.0, 5.0), it.rot, c.darker(0.3).alpha(a), 0.35, 0.0);
+                    cx.g.shape_full(
+                        *s,
+                        it.pos + depth,
+                        half + v2(5.0, 5.0),
+                        it.rot,
+                        c.darker(0.45).alpha(a),
+                        0.35,
+                        0.0,
+                    );
+                    cx.g.shape_full(
+                        *s,
+                        it.pos,
+                        half + v2(5.0, 5.0),
+                        it.rot,
+                        c.darker(0.3).alpha(a),
+                        0.35,
+                        0.0,
+                    );
                     cx.g.shape_full(*s, it.pos, half, it.rot, c.alpha(a), 0.35, 0.0);
-                    cx.g.shape_full(*s, it.pos - v2(0.0, half.y * 0.3), v2(half.x * 0.92, half.y * 0.45), it.rot, WHITE.alpha(0.25 * a), 1.0, 3.0);
+                    cx.g.shape_full(
+                        *s,
+                        it.pos - v2(0.0, half.y * 0.3),
+                        v2(half.x * 0.92, half.y * 0.45),
+                        it.rot,
+                        WHITE.alpha(0.25 * a),
+                        1.0,
+                        3.0,
+                    );
                 } else {
-                    cx.g.shape_full(*s, it.pos, half + v2(5.0, 5.0), it.rot, c.darker(0.35).alpha(a), 0.35, 0.0);
+                    cx.g.shape_full(
+                        *s,
+                        it.pos,
+                        half + v2(5.0, 5.0),
+                        it.rot,
+                        c.darker(0.35).alpha(a),
+                        0.35,
+                        0.0,
+                    );
                     cx.g.shape_full(*s, it.pos, half, it.rot, c.alpha(a), 0.35, 0.0);
                 }
             }
@@ -351,7 +465,12 @@ impl Activity for Keys {
 
     fn update(&mut self, cx: &mut Cx) {
         self.hue = approach(self.hue, self.target_hue, 2.0, cx.dt);
-        cx.g.background(hsv(self.hue, 0.32, 1.0), hsv(self.hue + 0.12, 0.22, 1.0), Backdrop::Bokeh, 1.0);
+        cx.g.background(
+            hsv(self.hue, 0.32, 1.0),
+            hsv(self.hue + 0.12, 0.22, 1.0),
+            Backdrop::Bokeh,
+            1.0,
+        );
 
         if self.idle.tick(cx, "¡Aprieta una tecla!") {
             self.pulse = 1.0;
@@ -406,7 +525,12 @@ impl Activity for Keys {
 
     fn down(&mut self, cx: &mut Cx, p: V2, button: u32) {
         // ¿Clic sobre una letra o dibujo? Salta y se nombra.
-        if let Some(it) = self.items.iter_mut().rev().find(|it| it.vel == V2::ZERO && p.dist(it.pos) < it.visible_r().max(20.0)) {
+        if let Some(it) = self
+            .items
+            .iter_mut()
+            .rev()
+            .find(|it| it.vel == V2::ZERO && p.dist(it.pos) < it.visible_r().max(20.0))
+        {
             it.bounce = 1.0;
             if !it.speech.is_empty() {
                 let s = it.speech.clone();
@@ -422,7 +546,14 @@ impl Activity for Keys {
             2 => {
                 // Botón derecho: corazones.
                 for _ in 0..8 {
-                    let mut h = crate::fx::Particle::new(p, cx.rng.dir() * cx.rng.range(80.0, 260.0), 1.2, cx.rng.range(10.0, 18.0), hsv(0.95 + cx.rng.range(-0.04, 0.04), 0.7, 1.0), crate::fx::Look::Shape(Shape::Heart));
+                    let mut h = crate::fx::Particle::new(
+                        p,
+                        cx.rng.dir() * cx.rng.range(80.0, 260.0),
+                        1.2,
+                        cx.rng.range(10.0, 18.0),
+                        hsv(0.95 + cx.rng.range(-0.04, 0.04), 0.7, 1.0),
+                        crate::fx::Look::Shape(Shape::Heart),
+                    );
                     h.drag = 2.0;
                     h.gravity = -60.0;
                     cx.fx.add(h);
@@ -436,7 +567,12 @@ impl Activity for Keys {
             }
             _ => {
                 cx.fx.confetti(&mut cx.rng, p, 18, 420.0);
-                cx.au.note(pentatonic(cx.rng.int(10) as i32 + 5, 60.0), Inst::Bell, p.x, 0.45);
+                cx.au.note(
+                    pentatonic(cx.rng.int(10) as i32 + 5, 60.0),
+                    Inst::Bell,
+                    p.x,
+                    0.45,
+                );
             }
         }
     }

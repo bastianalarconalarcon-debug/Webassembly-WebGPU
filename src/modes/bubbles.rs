@@ -50,7 +50,14 @@ pub struct Bubbles {
 
 impl Bubbles {
     pub fn new(_cx: &mut Cx) -> Bubbles {
-        Bubbles { bubbles: Vec::new(), freed: Vec::new(), shelf: Vec::new(), spawn_t: 0.3, ambient_t: 0.0, idle: IdlePrompt::new(12.0) }
+        Bubbles {
+            bubbles: Vec::new(),
+            freed: Vec::new(),
+            shelf: Vec::new(),
+            spawn_t: 0.3,
+            ambient_t: 0.0,
+            idle: IdlePrompt::new(12.0),
+        }
     }
 
     fn max_bubbles(cx: &Cx) -> usize {
@@ -71,7 +78,10 @@ impl Bubbles {
         if x.is_none() {
             for _ in 0..8 {
                 px = cx.rng.range(0.1, 0.9) * cx.w;
-                let crowded = self.bubbles.iter().any(|b| b.pos.y > cx.h - r * 3.0 && (b.pos.x - px).abs() < r * 2.2);
+                let crowded = self
+                    .bubbles
+                    .iter()
+                    .any(|b| b.pos.y > cx.h - r * 3.0 && (b.pos.x - px).abs() < r * 2.2);
                 if !crowded {
                     break;
                 }
@@ -92,7 +102,8 @@ impl Bubbles {
     fn pop(&mut self, cx: &mut Cx, i: usize) {
         let b = self.bubbles.remove(i);
         let p = b.center(cx.t);
-        cx.fx.droplets(&mut cx.rng, p, b.r, hsv(b.tint, 0.3, 1.0).alpha(0.9));
+        cx.fx
+            .droplets(&mut cx.rng, p, b.r, hsv(b.tint, 0.3, 1.0).alpha(0.9));
         cx.au.sfx(Sfx::Pop, 1.4 - b.r / cx.unit() * 3.0, p.x);
         let mut speech = format!("¡{}!", capitalize(b.word.word));
         if !b.word.sound.is_empty() {
@@ -101,7 +112,13 @@ impl Bubbles {
         }
         cx.au.say(&speech);
         let slot = (self.shelf.len() + self.freed.len()) % SHELF;
-        self.freed.push(Freed { word: b.word, from: p, r: b.r * 0.62, t: 0.0, slot });
+        self.freed.push(Freed {
+            word: b.word,
+            from: p,
+            r: b.r * 0.62,
+            t: 0.0,
+            slot,
+        });
     }
 
     fn shelf_slot(cx: &Cx, i: usize) -> (V2, f32) {
@@ -115,7 +132,11 @@ impl Bubbles {
         cx.au.sfx(Sfx::Fanfare, 1.0, cx.w * 0.5);
         cx.au.say_after(1.2, "¡Diez burbujas! ¡Bravo!");
         for i in 0..4 {
-            cx.fx.rocket(&mut cx.rng, v2(cx.w * (0.2 + 0.2 * i as f32), cx.h), cx.h * 0.6);
+            cx.fx.rocket(
+                &mut cx.rng,
+                v2(cx.w * (0.2 + 0.2 * i as f32), cx.h),
+                cx.h * 0.6,
+            );
         }
         for i in 0..SHELF {
             let (p, _) = Bubbles::shelf_slot(cx, i);
@@ -195,20 +216,39 @@ impl Activity for Bubbles {
             let r = b.r * breathe * (1.0 + b.hover.anim * 0.1);
             cx.g.glow(c, r * 1.3, hsv(b.tint, 0.5, 1.0).alpha(0.18));
             cx.g.emoji(b.word.emoji, c, r * 0.6, wob * 2.0, 1.0);
-            cx.g.shape_full(Shape::Bubble, c, v2(r * (1.0 + wob), r * (1.0 - wob)), 0.0, hsv(b.tint, 0.15, 1.0), 0.0, 0.0);
+            cx.g.shape_full(
+                Shape::Bubble,
+                c,
+                v2(r * (1.0 + wob), r * (1.0 - wob)),
+                0.0,
+                hsv(b.tint, 0.15, 1.0),
+                0.0,
+                0.0,
+            );
         }
 
         // Animales liberados.
         for f in self.freed.iter_mut() {
             f.t += dt;
         }
-        let done: Vec<usize> = self.freed.iter().enumerate().filter(|(_, f)| f.t >= FREED_TIME).map(|(i, _)| i).collect();
+        let done: Vec<usize> = self
+            .freed
+            .iter()
+            .enumerate()
+            .filter(|(_, f)| f.t >= FREED_TIME)
+            .map(|(i, _)| i)
+            .collect();
         for i in done.into_iter().rev() {
             let f = self.freed.remove(i);
             self.shelf.push(f.word.emoji);
             let (p, _) = Bubbles::shelf_slot(cx, self.shelf.len() - 1);
             cx.fx.sparkle(&mut cx.rng, p, 8, WHITE, 30.0);
-            cx.au.note(pentatonic(self.shelf.len() as i32 + 4, 60.0), Inst::Bell, p.x, 0.35);
+            cx.au.note(
+                pentatonic(self.shelf.len() as i32 + 4, 60.0),
+                Inst::Bell,
+                p.x,
+                0.35,
+            );
             if self.shelf.len() >= SHELF {
                 self.celebrate(cx);
             }
@@ -217,7 +257,12 @@ impl Activity for Bubbles {
         // Estante con lo que se ha reventado.
         let (first, sr) = Bubbles::shelf_slot(cx, 0);
         let (last, _) = Bubbles::shelf_slot(cx, SHELF - 1);
-        cx.g.rrect(v2((first.x + last.x) * 0.5, first.y), v2((last.x - first.x) * 0.5 + sr * 1.4, sr * 1.3), 1.0, WHITE.alpha(0.25));
+        cx.g.rrect(
+            v2((first.x + last.x) * 0.5, first.y),
+            v2((last.x - first.x) * 0.5 + sr * 1.4, sr * 1.3),
+            1.0,
+            WHITE.alpha(0.25),
+        );
         for i in 0..SHELF {
             let (p, r) = Bubbles::shelf_slot(cx, i);
             match self.shelf.get(i) {
@@ -238,7 +283,13 @@ impl Activity for Bubbles {
                 (start.lerp(slot, m), (f.r * 1.4) * (1.0 - m) + sr * m)
             };
             cx.g.emoji_shadow(f.word.emoji, p, r, 0.0, 1.0);
-            cx.g.emoji(f.word.emoji, p, r, (f.t * 10.0).sin() * 0.1 * (1.0 - k), 1.0);
+            cx.g.emoji(
+                f.word.emoji,
+                p,
+                r,
+                (f.t * 10.0).sin() * 0.1 * (1.0 - k),
+                1.0,
+            );
         }
     }
 
@@ -263,7 +314,11 @@ impl Activity for Bubbles {
     fn key(&mut self, cx: &mut Cx, k: &Key) {
         if let Some(c) = k.letter() {
             // ¿Hay una burbuja con algo que empiece con esa letra?
-            if let Some(i) = self.bubbles.iter().position(|b| b.word.first_letter() == c && b.pos.y < cx.h) {
+            if let Some(i) = self
+                .bubbles
+                .iter()
+                .position(|b| b.word.first_letter() == c && b.pos.y < cx.h)
+            {
                 self.pop(cx, i);
                 return;
             }
@@ -289,7 +344,8 @@ impl Activity for Bubbles {
             if let Some(i) = self.nearest(cx, cx.inp.mouse) {
                 self.bubbles[i].hover.anim = 1.0;
             }
-            cx.au.sfx_vol(Sfx::Bloop, 0.8 + cx.rng.f() * 0.5, cx.w * 0.5, 0.5);
+            cx.au
+                .sfx_vol(Sfx::Bloop, 0.8 + cx.rng.f() * 0.5, cx.w * 0.5, 0.5);
         }
     }
 }

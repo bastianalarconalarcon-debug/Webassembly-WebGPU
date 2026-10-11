@@ -167,6 +167,7 @@ const K_DIAMOND: u32 = 9u;
 const K_TEXT: u32 = 10u;
 const K_FLOWER: u32 = 11u;
 const K_ARROW: u32 = 12u;
+const K_CUBE: u32 = 13u;
 
 @vertex
 fn vs_sprite(@builtin(vertex_index) vi: u32, inst: SpriteIn) -> SpriteOut {
@@ -253,6 +254,54 @@ fn sd_rhombus(p_in: vec2f, b: vec2f) -> f32 {
   return d * sign(p.x * b.y + p.y * b.x - b.x * b.y);
 }
 
+// Hexágono con lados planos arriba y abajo (Inigo Quilez). `r` = apotema.
+fn sd_hexagon(p_in: vec2f, r: f32) -> f32 {
+  let k = vec3f(-0.866025404, 0.5, 0.577350269);
+  var p = abs(p_in);
+  p -= 2.0 * min(dot(k.xy, p), 0.0) * k.xy;
+  p -= vec2f(clamp(p.x, -k.z * r, k.z * r), r);
+  return length(p) * sign(p.y);
+}
+
+// Coordenadas (s, t) de `p` en la base (a, b).
+fn in_basis(p: vec2f, a: vec2f, b: vec2f) -> vec2f {
+  let det = a.x * b.y - a.y * b.x;
+  return vec2f(p.x * b.y - p.y * b.x, a.x * p.y - a.y * p.x) / det;
+}
+
+// Ícono de bloque en perspectiva isométrica (paleta del juego Construir):
+// tres caras con distinta luz, "píxeles" de 8×8 y borde oscuro.
+fn cube_icon(up: vec2f, r: f32, c: vec4f, aa: f32) -> vec4f {
+  let d = sd_hexagon(up.yx, r * 0.866);
+  let cov = 1.0 - smoothstep(-aa, aa, d);
+  if (cov <= 0.001) {
+    return vec4f(0.0);
+  }
+  let top = up.y > 0.57735 * abs(up.x);
+  let right = up.x > 0.0;
+  let a_top = vec2f(0.866 * r, 0.5 * r);
+  let b_top = vec2f(-0.866 * r, 0.5 * r);
+  let down = vec2f(0.0, -r);
+  var st = in_basis(up, select(b_top, a_top, right), down);
+  var shade = select(0.84, 0.66, right);
+  if (top) {
+    st = in_basis(up, a_top, b_top);
+    shade = 1.06;
+  }
+  let px = floor(clamp(st, vec2f(0.0), vec2f(0.999)) * 8.0);
+  let n = hash21(px + select(vec2f(0.0), vec2f(17.0, 3.0), top) + select(vec2f(0.0), vec2f(5.0, 29.0), right));
+  shade *= 0.95 + 0.1 * n;
+  // Biselado de 1 píxel en el borde de cada cara.
+  let e = min(st, vec2f(1.0) - st);
+  shade *= mix(0.8, 1.0, smoothstep(0.0, 0.1, min(e.x, e.y)));
+  var rgb = c.rgb * shade;
+  // Contorno oscuro estilo "sticker".
+  let bw = max(r * 0.07, 1.5);
+  rgb = mix(rgb, c.rgb * 0.35, smoothstep(-bw - aa, -bw + aa, d));
+  let a = cov * c.a;
+  return vec4f(rgb * a, a);
+}
+
 @fragment
 fn fs_sprite(in: SpriteOut) -> @location(0) vec4f {
   let kind = u32(in.misc.y + 0.5);
@@ -302,6 +351,14 @@ fn fs_sprite(in: SpriteOut) -> @location(0) vec4f {
     let t = clamp(1.0 - length(p / h), 0.0, 1.0);
     let a = t * t * c.a;
     return vec4f(c.rgb * a, a);
+  }
+
+  if (kind == K_CUBE) {
+    let ic = cube_icon(vec2f(p.x, -p.y), r, c, aa);
+    if (ic.a <= 0.001) {
+      discard;
+    }
+    return ic;
   }
 
   if (kind == K_BUBBLE) {

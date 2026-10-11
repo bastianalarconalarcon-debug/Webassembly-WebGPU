@@ -46,6 +46,8 @@ pub enum Shape {
     Flower = 11,
     /// Flecha apuntando a la derecha (rotar para otras direcciones).
     Arrow = 12,
+    /// Ícono de bloque en perspectiva isométrica (paleta del juego Construir).
+    Cube = 13,
 }
 
 /// Estilos de fondo (ver `fs_background` en el shader).
@@ -70,6 +72,8 @@ pub struct Gfx {
     /// Glifos registrados: (texto, es_letra). JS los dibuja en el atlas.
     pub glyphs: Vec<(String, bool)>,
     pub capacity: usize,
+    /// Escena 3D (juego Construir). Se vacía en cada cuadro.
+    pub d3: crate::gfx3d::Gfx3,
 }
 
 impl Default for Gfx {
@@ -89,11 +93,13 @@ impl Gfx {
             index: HashMap::new(),
             glyphs: Vec::new(),
             capacity: 210,
+            d3: crate::gfx3d::Gfx3::new(),
         }
     }
 
     pub fn begin_frame(&mut self) {
         self.scene.clear();
+        self.d3.begin_frame();
         self.to_paint = false;
         self.bg[10] = 0.0;
     }
@@ -146,7 +152,16 @@ impl Gfx {
 
     /// Figura con todas las opciones.
     #[allow(clippy::too_many_arguments)]
-    pub fn shape_full(&mut self, kind: Shape, p: V2, half: V2, rot: f32, c: Rgba, param: f32, soft: f32) {
+    pub fn shape_full(
+        &mut self,
+        kind: Shape,
+        p: V2,
+        half: V2,
+        rot: f32,
+        c: Rgba,
+        param: f32,
+        soft: f32,
+    ) {
         if c.a <= 0.002 || half.x == 0.0 || half.y <= 0.0 {
             return;
         }
@@ -190,7 +205,12 @@ impl Gfx {
             p + v2(0.0, r * 0.12 + 3.0),
             v2(r, r),
             rot,
-            Rgba { r: 0.05, g: 0.05, b: 0.2, a: 0.22 * strength },
+            Rgba {
+                r: 0.05,
+                g: 0.05,
+                b: 0.2,
+                a: 0.22 * strength,
+            },
             default_param(kind, r),
             soft,
         );
@@ -203,7 +223,15 @@ impl Gfx {
         self.shape(kind, p, r, rot, c);
         // Brillo superior.
         if kind == Shape::Circle || kind == Shape::RoundRect {
-            self.shape_full(kind, p - v2(r * 0.25, r * 0.3), v2(r * 0.35, r * 0.2), -0.5, c.lighter(0.6).alpha(0.45), 0.5, r * 0.15);
+            self.shape_full(
+                kind,
+                p - v2(r * 0.25, r * 0.3),
+                v2(r * 0.35, r * 0.2),
+                -0.5,
+                c.lighter(0.6).alpha(0.45),
+                0.5,
+                r * 0.15,
+            );
         }
     }
 
@@ -213,7 +241,19 @@ impl Gfx {
     }
 
     pub fn emoji_flip(&mut self, s: &str, p: V2, r: f32, rot: f32, alpha: f32, flip: bool) {
-        self.emoji_color(s, p, r, rot, Rgba { r: 1.0, g: 1.0, b: 1.0, a: alpha }, flip);
+        self.emoji_color(
+            s,
+            p,
+            r,
+            rot,
+            Rgba {
+                r: 1.0,
+                g: 1.0,
+                b: 1.0,
+                a: alpha,
+            },
+            flip,
+        );
     }
 
     /// Emoji multiplicado por un color (negro = silueta, útil para sombras).
@@ -221,7 +261,9 @@ impl Gfx {
         if c.a <= 0.002 || r <= 0.0 {
             return;
         }
-        let Some(id) = self.glyph_id(s, false) else { return };
+        let Some(id) = self.glyph_id(s, false) else {
+            return;
+        };
         let hx = if flip { -r } else { r };
         self.push(Instance {
             pos: [p.x, p.y],
@@ -236,7 +278,12 @@ impl Gfx {
 
     /// Sombra suave de un emoji.
     pub fn emoji_shadow(&mut self, s: &str, p: V2, r: f32, rot: f32, alpha: f32) {
-        let c = Rgba { r: 0.05, g: 0.05, b: 0.2, a: 0.2 * alpha };
+        let c = Rgba {
+            r: 0.05,
+            g: 0.05,
+            b: 0.2,
+            a: 0.2 * alpha,
+        };
         self.emoji_color(s, p + v2(0.0, r * 0.1 + 2.0), r, rot, c, false);
     }
 
@@ -245,7 +292,9 @@ impl Gfx {
         if c.a <= 0.002 || r <= 0.0 {
             return;
         }
-        let Some(id) = self.glyph_id(s, true) else { return };
+        let Some(id) = self.glyph_id(s, true) else {
+            return;
+        };
         self.push(Instance {
             pos: [p.x, p.y],
             half: [r, r],
@@ -259,7 +308,15 @@ impl Gfx {
 
     /// Rectángulo que cubre toda la pantalla.
     pub fn fullscreen(&mut self, w: f32, h: f32, c: Rgba) {
-        self.shape_full(Shape::RoundRect, v2(w * 0.5, h * 0.5), v2(w * 0.5 + 4.0, h * 0.5 + 4.0), 0.0, c, 0.0, 0.0);
+        self.shape_full(
+            Shape::RoundRect,
+            v2(w * 0.5, h * 0.5),
+            v2(w * 0.5 + 4.0, h * 0.5 + 4.0),
+            0.0,
+            c,
+            0.0,
+            0.0,
+        );
     }
 }
 

@@ -5,6 +5,7 @@ import { Renderer } from './renderer.js';
 import { TEXT_FONT, TEXT_WEIGHT } from './atlas.js';
 import { Synth } from './audio.js';
 import { Voice } from './speech.js';
+import { CUBE_BYTES, SCENE_FLOATS, QUALITY } from './voxels.js';
 
 // Tipos de evento: deben coincidir con src/audio.rs.
 const EV = { NOTE: 1, SFX: 2, SPEAK: 3, HUSH: 4, EXIT: 5 };
@@ -12,6 +13,7 @@ const EVENT_FLOATS = 6;
 const INSTANCE_FLOATS = 12;
 const NAME_KEY = 'juego.nombre';
 const VOLUME_KEY = 'juego.volumen';
+const QUALITY_KEY = 'juego.calidad3d';
 
 const decoder = new TextDecoder();
 const encoder = new TextEncoder();
@@ -78,6 +80,21 @@ class Game {
       clearPaint: x.paint_clear() === 1,
       showPaint: bg[10] > 0.5,
       bg,
+      d3: this.frame3d(),
+    };
+  }
+
+  /// Escena 3D del cuadro (o null). Las vistas se crean cada cuadro: la
+  /// memoria del wasm puede crecer y cambiar de lugar.
+  frame3d() {
+    const x = this.x;
+    if (!x.d3_active || x.d3_active() !== 1) return null;
+    const total = x.d3_cubes_len();
+    return {
+      scene: this.f32(x.d3_scene_ptr(), SCENE_FLOATS),
+      cubes: new Uint8Array(this.buffer, x.d3_cubes_ptr(), total * CUBE_BYTES),
+      total,
+      opaque: x.d3_opaque_len(),
     };
   }
 
@@ -190,6 +207,7 @@ async function boot() {
     game.x.init(w, h, (Math.random() * 0xffffffff) >>> 0);
     game.x.set_glyph_capacity(renderer.atlas.capacity);
     renderer.syncGlyphs(game);
+    initVoxels();
     playBtn.disabled = false;
     playText.textContent = '¡A jugar!';
     playBtn.focus();
@@ -203,6 +221,22 @@ async function boot() {
     }
     playText.textContent = 'Error';
   }
+}
+
+/// Compila el 3D en segundo plano y le avisa a Rust si quedó listo.
+async function initVoxels() {
+  const x = game.x;
+  if (!x.d3_set_status) return;
+  if (x.d3_cube_bytes() !== CUBE_BYTES || x.d3_scene_floats() !== SCENE_FLOATS) {
+    console.error('3D: el formato de Rust y JS no coincide');
+    x.d3_set_status(2);
+    return;
+  }
+  const saved = parseInt(storageGet(QUALITY_KEY), 10);
+  const level = Number.isInteger(saved) ? Math.min(Math.max(saved, 0), QUALITY.length - 1) : 0;
+  renderer.voxels.onlevel = (l) => storageSet(QUALITY_KEY, String(l));
+  const ok = await renderer.voxels.init(level);
+  x.d3_set_status(ok ? 1 : 2);
 }
 
 async function enterFullscreen() {
@@ -249,6 +283,10 @@ window.juego = {
   get modo() {
     return game ? game.x.current_mode() : -1;
   },
+  /// 0 cargando, 1 listo, 2 no disponible.
+  get d3() {
+    return renderer ? renderer.voxels.status : 0;
+  },
 };
 
 document.addEventListener('fullscreenchange', () => {
@@ -281,7 +319,8 @@ function handleEvents() {
 
 function loop(now) {
   if (!playing) return;
-  const dt = Math.min(0.05, Math.max(0, (now - lastTime) / 1000));
+  const rawDt = Math.max(0, (now - lastTime) / 1000);
+  const dt = Math.min(0.05, rawDt);
   lastTime = now;
   const [w, h] = renderer.resize();
   if (w !== lastSize[0] || h !== lastSize[1]) {
@@ -291,7 +330,9 @@ function loop(now) {
   game.x.update(dt, voice.speaking ? 1 : 0);
   handleEvents();
   renderer.syncGlyphs(game);
-  renderer.render(now / 1000, game.frame());
+  const frame = game.frame();
+  renderer.render(now / 1000, frame);
+  if (frame.d3) renderer.voxels.measure(rawDt);
   game.x.paint_done();
   requestAnimationFrame(loop);
 }

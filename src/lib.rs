@@ -12,10 +12,12 @@ pub mod audio;
 pub mod fx;
 pub mod game;
 pub mod gfx;
+pub mod gfx3d;
 pub mod math;
 pub mod modes;
 pub mod rng;
 pub mod vocab;
+pub mod voxel;
 
 use std::cell::RefCell;
 
@@ -99,7 +101,7 @@ pub extern "C" fn key_up(code: u32) {
 }
 
 /// Índice del juego activo: 0 inicio, 1 teclado, 2 pintar, 3 burbujas,
-/// 4 formas, 5 música, 6 abeja, 7 escribir, 8 sumar.
+/// 4 formas, 5 música, 6 abeja, 7 escribir, 8 sumar, 9 construir.
 #[no_mangle]
 pub extern "C" fn current_mode() -> u32 {
     with(|g| g.mode_index())
@@ -182,23 +184,88 @@ pub extern "C" fn glyph_count() -> u32 {
 
 #[no_mangle]
 pub extern "C" fn glyph_ptr(i: u32) -> *const u8 {
-    with(|g| g.cx.g.glyphs.get(i as usize).map(|s| s.0.as_ptr() as usize).unwrap_or(0)) as *const u8
+    with(|g| {
+        g.cx.g
+            .glyphs
+            .get(i as usize)
+            .map(|s| s.0.as_ptr() as usize)
+            .unwrap_or(0)
+    }) as *const u8
 }
 
 #[no_mangle]
 pub extern "C" fn glyph_len(i: u32) -> u32 {
-    with(|g| g.cx.g.glyphs.get(i as usize).map(|s| s.0.len() as u32).unwrap_or(0))
+    with(|g| {
+        g.cx.g
+            .glyphs
+            .get(i as usize)
+            .map(|s| s.0.len() as u32)
+            .unwrap_or(0)
+    })
 }
 
 #[no_mangle]
 pub extern "C" fn glyph_is_text(i: u32) -> u32 {
-    with(|g| g.cx.g.glyphs.get(i as usize).map(|s| s.1 as u32).unwrap_or(0))
+    with(|g| {
+        g.cx.g
+            .glyphs
+            .get(i as usize)
+            .map(|s| s.1 as u32)
+            .unwrap_or(0)
+    })
 }
 
 /// Cuántos glifos caben en el atlas que creó JS.
 #[no_mangle]
 pub extern "C" fn set_glyph_capacity(n: u32) {
     with(|g| g.cx.g.capacity = n as usize)
+}
+
+// --- Dibujo 3D (juego Construir) ----------------------------------------
+
+/// 1 si este cuadro tiene escena 3D.
+#[no_mangle]
+pub extern "C" fn d3_active() -> u32 {
+    with(|g| g.cx.g.d3.active as u32)
+}
+
+/// 72 floats: ver `gfx3d::Scene3`.
+#[no_mangle]
+pub extern "C" fn d3_scene_ptr() -> *const f32 {
+    with(|g| &g.cx.g.d3.scene as *const gfx3d::Scene3 as usize) as *const f32
+}
+
+/// Cubos de 40 bytes: [opacos..., translúcidos..., fantasmas...]
+#[no_mangle]
+pub extern "C" fn d3_cubes_ptr() -> *const u8 {
+    with(|g| g.cx.g.d3.cubes.as_ptr() as usize) as *const u8
+}
+
+#[no_mangle]
+pub extern "C" fn d3_cubes_len() -> u32 {
+    with(|g| g.cx.g.d3.cubes.len() as u32)
+}
+
+#[no_mangle]
+pub extern "C" fn d3_opaque_len() -> u32 {
+    with(|g| g.cx.g.d3.n_opaque)
+}
+
+/// Para que JS verifique que el formato coincide (si no, no usa 3D).
+#[no_mangle]
+pub extern "C" fn d3_cube_bytes() -> u32 {
+    gfx3d::CUBE_BYTES as u32
+}
+
+#[no_mangle]
+pub extern "C" fn d3_scene_floats() -> u32 {
+    gfx3d::SCENE_FLOATS as u32
+}
+
+/// JS avisa si el 3D está listo: 0 cargando, 1 listo, 2 no disponible.
+#[no_mangle]
+pub extern "C" fn d3_set_status(s: u32) {
+    with(|g| g.cx.g.d3.status = s)
 }
 
 // --- Sonido -------------------------------------------------------------
@@ -232,12 +299,18 @@ pub extern "C" fn key_code_count() -> u32 {
 
 #[no_mangle]
 pub extern "C" fn key_code_ptr(i: u32) -> *const u8 {
-    game::KEY_CODES.get(i as usize).map(|s| s.as_ptr()).unwrap_or(std::ptr::null())
+    game::KEY_CODES
+        .get(i as usize)
+        .map(|s| s.as_ptr())
+        .unwrap_or(std::ptr::null())
 }
 
 #[no_mangle]
 pub extern "C" fn key_code_len(i: u32) -> u32 {
-    game::KEY_CODES.get(i as usize).map(|s| s.len() as u32).unwrap_or(0)
+    game::KEY_CODES
+        .get(i as usize)
+        .map(|s| s.len() as u32)
+        .unwrap_or(0)
 }
 
 #[cfg(test)]
@@ -259,6 +332,7 @@ mod tests {
             ModeId::Bee,
             ModeId::Typing,
             ModeId::Adding,
+            ModeId::Build,
         ];
         for (mi, mode) in modes.into_iter().enumerate() {
             let mut g = Game::new(1280.0, 720.0, 42 + mi as u32);

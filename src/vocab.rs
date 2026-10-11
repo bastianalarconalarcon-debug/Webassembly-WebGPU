@@ -37,16 +37,50 @@ impl Word {
 }
 
 const fn m(word: &'static str, plural: &'static str, emoji: &'static str) -> Word {
-    Word { word, plural, emoji, gender: Gender::M, sound: "" }
+    Word {
+        word,
+        plural,
+        emoji,
+        gender: Gender::M,
+        sound: "",
+    }
 }
 const fn f(word: &'static str, plural: &'static str, emoji: &'static str) -> Word {
-    Word { word, plural, emoji, gender: Gender::F, sound: "" }
+    Word {
+        word,
+        plural,
+        emoji,
+        gender: Gender::F,
+        sound: "",
+    }
 }
-const fn ma(word: &'static str, plural: &'static str, emoji: &'static str, sound: &'static str) -> Word {
-    Word { word, plural, emoji, gender: Gender::M, sound }
+const fn ma(
+    word: &'static str,
+    plural: &'static str,
+    emoji: &'static str,
+    sound: &'static str,
+) -> Word {
+    Word {
+        word,
+        plural,
+        emoji,
+        gender: Gender::M,
+        sound,
+    }
 }
-const fn fa(word: &'static str, plural: &'static str, emoji: &'static str, sound: &'static str) -> Word {
-    Word { word, plural, emoji, gender: Gender::F, sound }
+const fn fa(
+    word: &'static str,
+    plural: &'static str,
+    emoji: &'static str,
+    sound: &'static str,
+) -> Word {
+    Word {
+        word,
+        plural,
+        emoji,
+        gender: Gender::F,
+        sound,
+    }
 }
 
 pub struct Letter {
@@ -106,44 +140,232 @@ pub const PALTA: Word = f("palta", "paltas", "🥑");
 pub const SANDIA: Word = f("sandía", "sandías", "🍉");
 
 pub static LETTERS: &[Letter] = &[
-    Letter { upper: "A", name: "a", contains_only: false, words: &[m("avión", "aviones", "✈️"), ABEJA, m("arcoíris", "arcoíris", "🌈")] },
-    Letter { upper: "B", name: "be", contains_only: false, words: &[BALLENA, m("barco", "barcos", "⛵"), BUHO, f("bicicleta", "bicicletas", "🚲")] },
-    Letter { upper: "C", name: "ce", contains_only: false, words: &[CONEJO, CABALLO, CHANCHO, m("cohete", "cohetes", "🚀"), f("casa", "casas", "🏠")] },
-    Letter { upper: "D", name: "de", contains_only: false, words: &[DINOSAURIO, DELFIN, m("durazno", "duraznos", "🍑")] },
-    Letter { upper: "E", name: "e", contains_only: false, words: &[ELEFANTE, ESTRELLA, m("erizo", "erizos", "🦔")] },
-    Letter { upper: "F", name: "efe", contains_only: false, words: &[FRUTILLA, FLOR, m("fuego", "fuegos", "🔥")] },
-    Letter { upper: "G", name: "ge", contains_only: false, words: &[GATO, GLOBO, GALLO, f("guitarra", "guitarras", "🎸")] },
-    Letter { upper: "H", name: "hache", contains_only: false, words: &[m("helado", "helados", "🍦"), f("hormiga", "hormigas", "🐜"), m("huevo", "huevos", "🥚"), m("hongo", "hongos", "🍄")] },
-    Letter { upper: "I", name: "i", contains_only: false, words: &[f("iguana", "iguanas", "🦎"), f("isla", "islas", "🏝️"), m("imán", "imanes", "🧲")] },
-    Letter { upper: "J", name: "jota", contains_only: false, words: &[JIRAFA, m("jugo", "jugos", "🧃")] },
-    Letter { upper: "K", name: "ka", contains_only: false, words: &[KOALA, m("kiwi", "kiwis", "🥝")] },
-    Letter { upper: "L", name: "ele", contains_only: false, words: &[LEON, f("luna", "lunas", "🌙"), m("limón", "limones", "🍋"), LOBO] },
-    Letter { upper: "M", name: "eme", contains_only: false, words: &[MARIPOSA, MANZANA, MONO] },
-    Letter { upper: "N", name: "ene", contains_only: false, words: &[f("nube", "nubes", "☁️"), f("naranja", "naranjas", "🍊"), f("nariz", "narices", "👃")] },
-    Letter { upper: "Ñ", name: "eñe", contains_only: false, words: &[m("ñandú", "ñandúes", "🐦")] },
-    Letter { upper: "O", name: "o", contains_only: false, words: &[OSO, OVEJA, f("ola", "olas", "🌊")] },
-    Letter { upper: "P", name: "pe", contains_only: false, words: &[PERRO, PATO, PEZ, PELOTA, POLLITO, PALTA, PINGUINO] },
-    Letter { upper: "Q", name: "cu", contains_only: false, words: &[m("queso", "quesos", "🧀")] },
-    Letter { upper: "R", name: "erre", contains_only: false, words: &[RATON, RANA, m("regalo", "regalos", "🎁"), m("reloj", "relojes", "⏰")] },
-    Letter { upper: "S", name: "ese", contains_only: false, words: &[m("sol", "soles", "☀️"), SERPIENTE, SANDIA] },
-    Letter { upper: "T", name: "te", contains_only: false, words: &[TORTUGA, TREN, TIGRE, m("tomate", "tomates", "🍅"), m("tambor", "tambores", "🥁")] },
-    Letter { upper: "U", name: "u", contains_only: false, words: &[m("unicornio", "unicornios", "🦄"), UVA] },
-    Letter { upper: "V", name: "ve", contains_only: false, words: &[VACA, m("volcán", "volcanes", "🌋"), m("violín", "violines", "🎻")] },
-    Letter { upper: "W", name: "doble ve", contains_only: true, words: &[m("kiwi", "kiwis", "🥝"), m("wafle", "wafles", "🧇")] },
-    Letter { upper: "X", name: "equis", contains_only: true, words: &[m("taxi", "taxis", "🚕"), m("saxofón", "saxofones", "🎷")] },
-    Letter { upper: "Y", name: "i griega", contains_only: false, words: &[m("yoyó", "yoyós", "🪀"), m("yate", "yates", "🛥️")] },
-    Letter { upper: "Z", name: "zeta", contains_only: false, words: &[ZORRO, f("zanahoria", "zanahorias", "🥕"), f("zapatilla", "zapatillas", "👟")] },
+    Letter {
+        upper: "A",
+        name: "a",
+        contains_only: false,
+        words: &[
+            m("avión", "aviones", "✈️"),
+            ABEJA,
+            m("arcoíris", "arcoíris", "🌈"),
+        ],
+    },
+    Letter {
+        upper: "B",
+        name: "be",
+        contains_only: false,
+        words: &[
+            BALLENA,
+            m("barco", "barcos", "⛵"),
+            BUHO,
+            f("bicicleta", "bicicletas", "🚲"),
+        ],
+    },
+    Letter {
+        upper: "C",
+        name: "ce",
+        contains_only: false,
+        words: &[
+            CONEJO,
+            CABALLO,
+            CHANCHO,
+            m("cohete", "cohetes", "🚀"),
+            f("casa", "casas", "🏠"),
+        ],
+    },
+    Letter {
+        upper: "D",
+        name: "de",
+        contains_only: false,
+        words: &[DINOSAURIO, DELFIN, m("durazno", "duraznos", "🍑")],
+    },
+    Letter {
+        upper: "E",
+        name: "e",
+        contains_only: false,
+        words: &[ELEFANTE, ESTRELLA, m("erizo", "erizos", "🦔")],
+    },
+    Letter {
+        upper: "F",
+        name: "efe",
+        contains_only: false,
+        words: &[FRUTILLA, FLOR, m("fuego", "fuegos", "🔥")],
+    },
+    Letter {
+        upper: "G",
+        name: "ge",
+        contains_only: false,
+        words: &[GATO, GLOBO, GALLO, f("guitarra", "guitarras", "🎸")],
+    },
+    Letter {
+        upper: "H",
+        name: "hache",
+        contains_only: false,
+        words: &[
+            m("helado", "helados", "🍦"),
+            f("hormiga", "hormigas", "🐜"),
+            m("huevo", "huevos", "🥚"),
+            m("hongo", "hongos", "🍄"),
+        ],
+    },
+    Letter {
+        upper: "I",
+        name: "i",
+        contains_only: false,
+        words: &[
+            f("iguana", "iguanas", "🦎"),
+            f("isla", "islas", "🏝️"),
+            m("imán", "imanes", "🧲"),
+        ],
+    },
+    Letter {
+        upper: "J",
+        name: "jota",
+        contains_only: false,
+        words: &[JIRAFA, m("jugo", "jugos", "🧃")],
+    },
+    Letter {
+        upper: "K",
+        name: "ka",
+        contains_only: false,
+        words: &[KOALA, m("kiwi", "kiwis", "🥝")],
+    },
+    Letter {
+        upper: "L",
+        name: "ele",
+        contains_only: false,
+        words: &[
+            LEON,
+            f("luna", "lunas", "🌙"),
+            m("limón", "limones", "🍋"),
+            LOBO,
+        ],
+    },
+    Letter {
+        upper: "M",
+        name: "eme",
+        contains_only: false,
+        words: &[MARIPOSA, MANZANA, MONO],
+    },
+    Letter {
+        upper: "N",
+        name: "ene",
+        contains_only: false,
+        words: &[
+            f("nube", "nubes", "☁️"),
+            f("naranja", "naranjas", "🍊"),
+            f("nariz", "narices", "👃"),
+        ],
+    },
+    Letter {
+        upper: "Ñ",
+        name: "eñe",
+        contains_only: false,
+        words: &[m("ñandú", "ñandúes", "🐦")],
+    },
+    Letter {
+        upper: "O",
+        name: "o",
+        contains_only: false,
+        words: &[OSO, OVEJA, f("ola", "olas", "🌊")],
+    },
+    Letter {
+        upper: "P",
+        name: "pe",
+        contains_only: false,
+        words: &[PERRO, PATO, PEZ, PELOTA, POLLITO, PALTA, PINGUINO],
+    },
+    Letter {
+        upper: "Q",
+        name: "cu",
+        contains_only: false,
+        words: &[m("queso", "quesos", "🧀")],
+    },
+    Letter {
+        upper: "R",
+        name: "erre",
+        contains_only: false,
+        words: &[
+            RATON,
+            RANA,
+            m("regalo", "regalos", "🎁"),
+            m("reloj", "relojes", "⏰"),
+        ],
+    },
+    Letter {
+        upper: "S",
+        name: "ese",
+        contains_only: false,
+        words: &[m("sol", "soles", "☀️"), SERPIENTE, SANDIA],
+    },
+    Letter {
+        upper: "T",
+        name: "te",
+        contains_only: false,
+        words: &[
+            TORTUGA,
+            TREN,
+            TIGRE,
+            m("tomate", "tomates", "🍅"),
+            m("tambor", "tambores", "🥁"),
+        ],
+    },
+    Letter {
+        upper: "U",
+        name: "u",
+        contains_only: false,
+        words: &[m("unicornio", "unicornios", "🦄"), UVA],
+    },
+    Letter {
+        upper: "V",
+        name: "ve",
+        contains_only: false,
+        words: &[
+            VACA,
+            m("volcán", "volcanes", "🌋"),
+            m("violín", "violines", "🎻"),
+        ],
+    },
+    Letter {
+        upper: "W",
+        name: "doble ve",
+        contains_only: true,
+        words: &[m("kiwi", "kiwis", "🥝"), m("wafle", "wafles", "🧇")],
+    },
+    Letter {
+        upper: "X",
+        name: "equis",
+        contains_only: true,
+        words: &[m("taxi", "taxis", "🚕"), m("saxofón", "saxofones", "🎷")],
+    },
+    Letter {
+        upper: "Y",
+        name: "i griega",
+        contains_only: false,
+        words: &[m("yoyó", "yoyós", "🪀"), m("yate", "yates", "🛥️")],
+    },
+    Letter {
+        upper: "Z",
+        name: "zeta",
+        contains_only: false,
+        words: &[
+            ZORRO,
+            f("zanahoria", "zanahorias", "🥕"),
+            f("zapatilla", "zapatillas", "👟"),
+        ],
+    },
 ];
 
 /// Animales para las burbujas (todos con sonido).
 pub static ANIMALS: &[Word] = &[
-    PERRO, GATO, VACA, PATO, OVEJA, CHANCHO, GALLO, POLLITO, CABALLO, RANA, LEON, MONO, ELEFANTE, RATON, ABEJA,
-    BUHO, SERPIENTE, TIGRE, OSO, LOBO, DINOSAURIO, BALLENA, PEZ, TREN, AUTO,
+    PERRO, GATO, VACA, PATO, OVEJA, CHANCHO, GALLO, POLLITO, CABALLO, RANA, LEON, MONO, ELEFANTE,
+    RATON, ABEJA, BUHO, SERPIENTE, TIGRE, OSO, LOBO, DINOSAURIO, BALLENA, PEZ, TREN, AUTO,
 ];
 
 /// Cosas para contar con los números.
 pub static COUNTABLES: &[Word] = &[
-    MANZANA, FRUTILLA, ESTRELLA, PELOTA, FLOR, GLOBO, PATO, PERRO, GATO, PEZ, MARIPOSA, AUTO, PLATANO, UVA, PALTA,
+    MANZANA, FRUTILLA, ESTRELLA, PELOTA, FLOR, GLOBO, PATO, PERRO, GATO, PEZ, MARIPOSA, AUTO,
+    PLATANO, UVA, PALTA,
 ];
 
 /// Palabras para el juego Escribir, de las más cortas a las más largas.
@@ -170,7 +392,9 @@ pub static WRITE_WORDS: &[Word] = &[
     ABEJA,
 ];
 
-pub static NUMBERS: [&str; 11] = ["cero", "uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve", "diez"];
+pub static NUMBERS: [&str; 11] = [
+    "cero", "uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve", "diez",
+];
 
 /// "una flor", "dos flores"... (concordancia de "uno" con el género)
 pub fn count_phrase(n: u32, w: &Word) -> String {
@@ -221,7 +445,11 @@ impl ColorName {
 }
 
 const fn cn(m: &'static str, f: &'static str, rgb: u32) -> ColorName {
-    ColorName { m, f, rgb: hex(rgb) }
+    ColorName {
+        m,
+        f,
+        rgb: hex(rgb),
+    }
 }
 
 pub const ROJO: ColorName = cn("rojo", "roja", 0xE53935);
@@ -240,7 +468,9 @@ pub const BLANCO: ColorName = cn("blanco", "blanca", 0xFFFFFF);
 pub static GAME_COLORS: &[ColorName] = &[ROJO, AZUL, AMARILLO, VERDE, NARANJO, MORADO, ROSADO];
 
 /// Paleta del modo Pintar.
-pub static PAINT_COLORS: &[ColorName] = &[ROJO, NARANJO, AMARILLO, VERDE, CELESTE, AZUL, MORADO, ROSADO, CAFE, NEGRO];
+pub static PAINT_COLORS: &[ColorName] = &[
+    ROJO, NARANJO, AMARILLO, VERDE, CELESTE, AZUL, MORADO, ROSADO, CAFE, NEGRO,
+];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ShapeName {
@@ -250,11 +480,31 @@ pub struct ShapeName {
 }
 
 pub static SHAPES: &[ShapeName] = &[
-    ShapeName { name: "círculo", gender: Gender::M, shape: crate::gfx::Shape::Circle },
-    ShapeName { name: "cuadrado", gender: Gender::M, shape: crate::gfx::Shape::RoundRect },
-    ShapeName { name: "triángulo", gender: Gender::M, shape: crate::gfx::Shape::Triangle },
-    ShapeName { name: "estrella", gender: Gender::F, shape: crate::gfx::Shape::Star },
-    ShapeName { name: "corazón", gender: Gender::M, shape: crate::gfx::Shape::Heart },
+    ShapeName {
+        name: "círculo",
+        gender: Gender::M,
+        shape: crate::gfx::Shape::Circle,
+    },
+    ShapeName {
+        name: "cuadrado",
+        gender: Gender::M,
+        shape: crate::gfx::Shape::RoundRect,
+    },
+    ShapeName {
+        name: "triángulo",
+        gender: Gender::M,
+        shape: crate::gfx::Shape::Triangle,
+    },
+    ShapeName {
+        name: "estrella",
+        gender: Gender::F,
+        shape: crate::gfx::Shape::Star,
+    },
+    ShapeName {
+        name: "corazón",
+        gender: Gender::M,
+        shape: crate::gfx::Shape::Heart,
+    },
 ];
 
 /// "el círculo rojo" / "la estrella roja"
@@ -266,7 +516,15 @@ pub fn shape_phrase(s: &ShapeName, c: &ColorName) -> String {
     format!("{} {} {}", art, s.name, c.for_gender(s.gender))
 }
 
-pub static PRAISE: &[&str] = &["¡Muy bien!", "¡Bacán!", "¡Bravo!", "¡Excelente!", "¡Lo encontraste!", "¡Genial!", "¡Súper!"];
+pub static PRAISE: &[&str] = &[
+    "¡Muy bien!",
+    "¡Bacán!",
+    "¡Bravo!",
+    "¡Excelente!",
+    "¡Lo encontraste!",
+    "¡Genial!",
+    "¡Súper!",
+];
 
 /// Nombre hablado de teclas especiales (según `KeyboardEvent.code`).
 pub fn key_name(code: &str) -> Option<&'static str> {

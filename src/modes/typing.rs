@@ -60,7 +60,11 @@ impl Typing {
     pub fn new(cx: &mut Cx) -> Typing {
         let mut t = Typing {
             slots: Vec::new(),
-            target: Target { emoji: "⭐", spoken: String::new(), done_speech: String::new() },
+            target: Target {
+                emoji: "⭐",
+                spoken: String::new(),
+                done_speech: String::new(),
+            },
             cursor: 0,
             wrong: 0,
             caps: Vec::new(),
@@ -106,7 +110,12 @@ impl Typing {
             .map(|c| {
                 let shown: String = c.to_uppercase().collect();
                 let key = vocab::fold_letter(c);
-                Slot { shown, key, done: key.is_none(), pop: 0.0 }
+                Slot {
+                    shown,
+                    key,
+                    done: key.is_none(),
+                    pop: 0.0,
+                }
             })
             .collect();
         self.target = target;
@@ -139,7 +148,11 @@ impl Typing {
             }
             self.set_word(
                 w.word,
-                Target { emoji: w.emoji, spoken: format!("Vamos a escribir: {}.", w.word), done_speech: done },
+                Target {
+                    emoji: w.emoji,
+                    spoken: format!("Vamos a escribir: {}.", w.word),
+                    done_speech: done,
+                },
             );
         }
         if speak {
@@ -186,7 +199,8 @@ impl Typing {
         if let Some(cap) = self.caps.iter_mut().find(|c| c.ch == ch) {
             cap.flash = 1.0;
         }
-        cx.au.note(pentatonic(step + 5, 60.0), Inst::Marimba, p.x, 0.6);
+        cx.au
+            .note(pentatonic(step + 5, 60.0), Inst::Marimba, p.x, 0.6);
         if earned {
             cx.fx.confetti(&mut cx.rng, p, 18, 420.0);
         } else {
@@ -201,7 +215,11 @@ impl Typing {
             self.finished = Some(3.2);
             self.pic_bounce = 1.0;
             for i in 0..3 {
-                cx.fx.rocket(&mut cx.rng, v2(cx.w * (0.25 + 0.25 * i as f32), cx.h), cx.h * 0.5);
+                cx.fx.rocket(
+                    &mut cx.rng,
+                    v2(cx.w * (0.25 + 0.25 * i as f32), cx.h),
+                    cx.h * 0.5,
+                );
             }
         } else {
             cx.au.say(name);
@@ -232,7 +250,9 @@ impl Typing {
         if self.nag_cooldown <= 0.0 {
             let want_name = vocab::letter_info(want).map(|l| l.name).unwrap_or("");
             match vocab::letter_info(letter) {
-                Some(got) => cx.au.say(&format!("Esa es la {}. Busca la {}.", got.name, want_name)),
+                Some(got) => cx
+                    .au
+                    .say(&format!("Esa es la {}. Busca la {}.", got.name, want_name)),
                 None => cx.au.say(&format!("Busca la {}.", want_name)),
             }
             self.nag_cooldown = 2.5;
@@ -268,7 +288,8 @@ impl Activity for Typing {
         self.pic_bounce = (self.pic_bounce - dt * 0.8).max(0.0);
         if let Some(name) = self.expected().and_then(vocab::letter_info).map(|l| l.name) {
             if self.finished.is_none() {
-                self.idle.tick(cx, &format!("Busca la {} en el teclado.", name));
+                self.idle
+                    .tick(cx, &format!("Busca la {} en el teclado.", name));
             }
         }
         if let Some(f) = self.finished.as_mut() {
@@ -280,7 +301,10 @@ impl Activity for Typing {
 
         // Dibujo de la palabra (clic = la dice).
         let pic = v2(cx.w * 0.5, cx.h * 0.17);
-        let pr = cx.unit() * 0.1 * ease_out_back((self.appear / 0.5).min(1.0)) * (1.0 + 0.2 * (self.pic_bounce * 12.0).sin() * self.pic_bounce);
+        let pr = cx.unit()
+            * 0.1
+            * ease_out_back((self.appear / 0.5).min(1.0))
+            * (1.0 + 0.2 * (self.pic_bounce * 12.0).sin() * self.pic_bounce);
         cx.g.glow(pic, pr * 1.8, WHITE.alpha(0.7));
         cx.g.emoji_shadow(self.target.emoji, pic, pr, 0.0, 1.0);
         cx.g.emoji(self.target.emoji, pic, pr, (t * 1.5).sin() * 0.06, 1.0);
@@ -296,42 +320,121 @@ impl Activity for Typing {
             let current = i == self.cursor && self.finished.is_none();
             let k = ease_out_back(((self.appear - i as f32 * 0.08) / 0.4).clamp(0.0, 1.0));
             let half = size * 0.44 * k;
-            let lift = if current { (t * 4.0).sin().abs() * size * 0.05 } else { 0.0 };
+            let lift = if current {
+                (t * 4.0).sin().abs() * size * 0.05
+            } else {
+                0.0
+            };
             let card = if current { hex(0xFFF59D) } else { WHITE };
-            cx.g.shape_full(Shape::RoundRect, p + v2(0.0, 5.0), v2(half, half * 1.1), 0.0, Rgba { r: 0.1, g: 0.1, b: 0.3, a: 0.15 }, 0.25, 6.0);
-            cx.g.shape_full(Shape::RoundRect, p - v2(0.0, lift), v2(half, half * 1.1), 0.0, card, 0.25, 0.0);
+            cx.g.shape_full(
+                Shape::RoundRect,
+                p + v2(0.0, 5.0),
+                v2(half, half * 1.1),
+                0.0,
+                Rgba {
+                    r: 0.1,
+                    g: 0.1,
+                    b: 0.3,
+                    a: 0.15,
+                },
+                0.25,
+                6.0,
+            );
+            cx.g.shape_full(
+                Shape::RoundRect,
+                p - v2(0.0, lift),
+                v2(half, half * 1.1),
+                0.0,
+                card,
+                0.25,
+                0.0,
+            );
             if current {
-                cx.g.ring(p - v2(0.0, lift), half * 1.25, 3.0, hex(0xFFB300).alpha(0.7 + 0.3 * (t * 6.0).sin()));
+                cx.g.ring(
+                    p - v2(0.0, lift),
+                    half * 1.25,
+                    3.0,
+                    hex(0xFFB300).alpha(0.7 + 0.3 * (t * 6.0).sin()),
+                );
             }
             let color = hsv(i as f32 * 0.13 + 0.95, 0.75, 0.95);
             let pop = 1.0 + 0.35 * (s.pop * 10.0).sin() * s.pop;
             if s.done {
-                cx.g.text(&s.shown, p - v2(0.0, lift), half * 0.95 * pop, 0.0, color, 0.12);
+                cx.g.text(
+                    &s.shown,
+                    p - v2(0.0, lift),
+                    half * 0.95 * pop,
+                    0.0,
+                    color,
+                    0.12,
+                );
             } else {
                 // Letra fantasma: se ve la forma para buscarla.
-                let a = if current { 0.35 + 0.15 * (t * 4.0).sin() } else { 0.18 };
-                cx.g.text(&s.shown, p - v2(0.0, lift), half * 0.95, 0.0, Rgba { r: 0.3, g: 0.35, b: 0.5, a }, 0.0);
+                let a = if current {
+                    0.35 + 0.15 * (t * 4.0).sin()
+                } else {
+                    0.18
+                };
+                cx.g.text(
+                    &s.shown,
+                    p - v2(0.0, lift),
+                    half * 0.95,
+                    0.0,
+                    Rgba {
+                        r: 0.3,
+                        g: 0.35,
+                        b: 0.5,
+                        a,
+                    },
+                    0.0,
+                );
             }
         }
 
         // Teclado en pantalla con la tecla que hay que buscar.
-        let want = if self.finished.is_none() { self.expected() } else { None };
+        let want = if self.finished.is_none() {
+            self.expected()
+        } else {
+            None
+        };
         let mouse = cx.inp.mouse;
         let has_mouse = cx.inp.has_mouse;
         for cap in self.caps.iter_mut() {
             cap.flash = (cap.flash - dt * 2.5).max(0.0);
-            let over = has_mouse && (mouse.x - cap.pos.x).abs() < cap.half && (mouse.y - cap.pos.y).abs() < cap.half;
+            let over = has_mouse
+                && (mouse.x - cap.pos.x).abs() < cap.half
+                && (mouse.y - cap.pos.y).abs() < cap.half;
             cap.hover.update(cx, over);
             let is_want = want == Some(cap.ch);
-            let pulse = if is_want { (t * 5.0).sin() * 0.5 + 0.5 } else { 0.0 };
+            let pulse = if is_want {
+                (t * 5.0).sin() * 0.5 + 0.5
+            } else {
+                0.0
+            };
             let h = cap.half * (1.0 + 0.08 * cap.hover.anim + 0.06 * pulse);
             let press = v2(0.0, cap.flash * h * 0.15);
             if is_want {
                 cx.g.glow(cap.pos, h * 2.6, hex(0xFFD54F).alpha(0.4 + 0.4 * pulse));
             }
-            cx.g.shape_full(Shape::RoundRect, cap.pos + v2(0.0, h * 0.18), v2(h, h), 0.0, hex(0x78909C), 0.25, 0.0);
+            cx.g.shape_full(
+                Shape::RoundRect,
+                cap.pos + v2(0.0, h * 0.18),
+                v2(h, h),
+                0.0,
+                hex(0x78909C),
+                0.25,
+                0.0,
+            );
             let face = if is_want { hex(0xFFE082) } else { WHITE }.mix(hex(0x80DEEA), cap.flash);
-            cx.g.shape_full(Shape::RoundRect, cap.pos + press, v2(h, h), 0.0, face, 0.25, 0.0);
+            cx.g.shape_full(
+                Shape::RoundRect,
+                cap.pos + press,
+                v2(h, h),
+                0.0,
+                face,
+                0.25,
+                0.0,
+            );
             let mut buf = [0u8; 4];
             let s: &str = cap.ch.encode_utf8(&mut buf);
             cx.g.text(s, cap.pos + press, h * 0.7, 0.0, hex(0x37474F), 0.0);
@@ -352,7 +455,11 @@ impl Activity for Typing {
     }
 
     fn down(&mut self, cx: &mut Cx, p: V2, _button: u32) {
-        if let Some(cap) = self.caps.iter().find(|c| (p.x - c.pos.x).abs() < c.half && (p.y - c.pos.y).abs() < c.half) {
+        if let Some(cap) = self
+            .caps
+            .iter()
+            .find(|c| (p.x - c.pos.x).abs() < c.half && (p.y - c.pos.y).abs() < c.half)
+        {
             let ch = cap.ch;
             self.press(cx, ch);
             return;

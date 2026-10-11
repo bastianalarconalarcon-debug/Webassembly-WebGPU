@@ -19,6 +19,7 @@ Está hecho con **Rust compilado a WebAssembly** (toda la lógica) y
 | 🎨 **Pintar** | Pinta con sólo mover el mouse. Clic = estampa. Barra de colores, arcoíris, goma y basurero. La rueda del mouse cambia el tamaño del pincel. |
 | 🎵 **Música** | Xilófono de 8 barras. Pasar el mouse = glissando. Cinco instrumentos. "Estrellita" y "Los pollitos dicen": cada tecla toca la siguiente nota de la canción. |
 | 🫧 **Burbujas** | Burbujas con animales: al reventarlas dicen su nombre y su sonido ("¡Vaca! ¡Muuu!"). Apretar una letra revienta el animal que empieza con esa letra. |
+| 🧱 **Construir** | Mundo 3D de bloques tipo Minecraft sobre una pradera (zona de 24×24). Clic para poner bloques (o arrastrar para hacer filas), goma o clic derecho para sacar, ↩️ deshacer. Bloques de colores, de naturaleza (pasto, madera, piedra, arena, agua…) y sorpresas (vidrio, oro, nube, árbol, casita). Interruptor 🎈 Flotar / 🍎 Caer: con física, lo que queda sin apoyo tiembla y se cae (un puente puede sobresalir hasta 3 bloques). Los números arman una torre contando. |
 | 🐝 **La abeja** | Se mueve con las flechas (o WASD) y junta flores contando hasta 10. Unas flechas en pantalla se iluminan igual que las del teclado. |
 
 Detalles pensados para los 3 años:
@@ -70,12 +71,16 @@ src/                 Rust -> WebAssembly: toda la lógica
   audio.rs           cola de sonidos y frases para la voz
   fx.rs              partículas (confeti, chispas, fuegos artificiales)
   vocab.rs           vocabulario chileno: letras, palabras, animales, colores
+  gfx3d.rs           3D: cubos instanciados, cámara, matrices, oclusión ambiental
+  voxel.rs           mundo de bloques: rayo, física "andamio", deshacer
   modes/             un archivo por juego
 web/                 el navegador
   index.html         portada para papá/mamá
   main.js            carga el wasm, conecta mouse/teclado, bucle principal
   renderer.js        WebGPU: una sola llamada de dibujo por cuadro (instancing)
   shaders.wgsl       figuras por funciones de distancia, fondos animados
+  voxels.js          WebGPU 3D: sombras, antialiasing, calidad automática
+  cubos.wgsl         bloques con texturas pixeladas procedurales, cielo, pradera
   atlas.js           emojis y letras en una textura (letras como SDF)
   audio.js           sintetizador con Web Audio (no hay archivos de sonido)
   speech.js          voz en español (SpeechSynthesis)
@@ -93,6 +98,5 @@ y una puerta en `src/modes/home.rs`.
 
 ## Ideas para después
 
-- Simulador 3D para construir (bloques, casas, torres) con WebGPU.
 - Trazar letras con el mouse.
 - Más canciones y un "Simón dice" musical.

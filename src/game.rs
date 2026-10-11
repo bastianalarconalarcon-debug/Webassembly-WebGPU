@@ -15,17 +15,108 @@ use crate::vocab;
 /// Nombres de `KeyboardEvent.code` que entiende el juego. JS lee esta lista
 /// para traducir cada tecla a un número (0 = desconocida).
 pub static KEY_CODES: &[&str] = &[
-    "", "Space", "Enter", "NumpadEnter", "Backspace", "Delete", "Tab", "Escape", "CapsLock",
-    "ShiftLeft", "ShiftRight", "ControlLeft", "ControlRight", "AltLeft", "AltRight", "MetaLeft", "MetaRight",
-    "ContextMenu", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown", "Insert",
-    "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12",
-    "KeyA", "KeyB", "KeyC", "KeyD", "KeyE", "KeyF", "KeyG", "KeyH", "KeyI", "KeyJ", "KeyK", "KeyL", "KeyM",
-    "KeyN", "KeyO", "KeyP", "KeyQ", "KeyR", "KeyS", "KeyT", "KeyU", "KeyV", "KeyW", "KeyX", "KeyY", "KeyZ",
-    "Digit0", "Digit1", "Digit2", "Digit3", "Digit4", "Digit5", "Digit6", "Digit7", "Digit8", "Digit9",
-    "Numpad0", "Numpad1", "Numpad2", "Numpad3", "Numpad4", "Numpad5", "Numpad6", "Numpad7", "Numpad8", "Numpad9",
-    "NumpadAdd", "NumpadSubtract", "NumpadMultiply", "NumpadDivide", "NumpadDecimal",
-    "Semicolon", "Quote", "BracketLeft", "BracketRight", "Backslash", "Comma", "Period", "Slash", "Minus",
-    "Equal", "Backquote", "IntlBackslash",
+    "",
+    "Space",
+    "Enter",
+    "NumpadEnter",
+    "Backspace",
+    "Delete",
+    "Tab",
+    "Escape",
+    "CapsLock",
+    "ShiftLeft",
+    "ShiftRight",
+    "ControlLeft",
+    "ControlRight",
+    "AltLeft",
+    "AltRight",
+    "MetaLeft",
+    "MetaRight",
+    "ContextMenu",
+    "ArrowUp",
+    "ArrowDown",
+    "ArrowLeft",
+    "ArrowRight",
+    "Home",
+    "End",
+    "PageUp",
+    "PageDown",
+    "Insert",
+    "F1",
+    "F2",
+    "F3",
+    "F4",
+    "F5",
+    "F6",
+    "F7",
+    "F8",
+    "F9",
+    "F10",
+    "F11",
+    "F12",
+    "KeyA",
+    "KeyB",
+    "KeyC",
+    "KeyD",
+    "KeyE",
+    "KeyF",
+    "KeyG",
+    "KeyH",
+    "KeyI",
+    "KeyJ",
+    "KeyK",
+    "KeyL",
+    "KeyM",
+    "KeyN",
+    "KeyO",
+    "KeyP",
+    "KeyQ",
+    "KeyR",
+    "KeyS",
+    "KeyT",
+    "KeyU",
+    "KeyV",
+    "KeyW",
+    "KeyX",
+    "KeyY",
+    "KeyZ",
+    "Digit0",
+    "Digit1",
+    "Digit2",
+    "Digit3",
+    "Digit4",
+    "Digit5",
+    "Digit6",
+    "Digit7",
+    "Digit8",
+    "Digit9",
+    "Numpad0",
+    "Numpad1",
+    "Numpad2",
+    "Numpad3",
+    "Numpad4",
+    "Numpad5",
+    "Numpad6",
+    "Numpad7",
+    "Numpad8",
+    "Numpad9",
+    "NumpadAdd",
+    "NumpadSubtract",
+    "NumpadMultiply",
+    "NumpadDivide",
+    "NumpadDecimal",
+    "Semicolon",
+    "Quote",
+    "BracketLeft",
+    "BracketRight",
+    "Backslash",
+    "Comma",
+    "Period",
+    "Slash",
+    "Minus",
+    "Equal",
+    "Backquote",
+    "IntlBackslash",
 ];
 
 /// Una tecla presionada.
@@ -55,7 +146,10 @@ impl Key {
         if let Some(d) = self.ch.and_then(|c| c.to_digit(10)) {
             return Some(d);
         }
-        let s = self.code.strip_prefix("Digit").or_else(|| self.code.strip_prefix("Numpad"))?;
+        let s = self
+            .code
+            .strip_prefix("Digit")
+            .or_else(|| self.code.strip_prefix("Numpad"))?;
         if self.ch.is_none() {
             s.parse().ok()
         } else {
@@ -121,6 +215,10 @@ pub struct Cx {
     pub name: String,
     /// Un juego pide cambiar a otro.
     pub goto: Option<(ModeId, V2, Rgba)>,
+    /// Mundo de bloques del juego Construir (vive aquí para no perderse al ir a la casa).
+    pub world: crate::voxel::Sim,
+    /// ¿Ya se armó el mundo inicial de Construir?
+    pub build_seeded: bool,
 }
 
 impl Cx {
@@ -168,13 +266,21 @@ impl Game {
             au: Audio::new(),
             rng: Rng::new(seed),
             fx: Fx::default(),
-            inp: Input { mouse: v2(w * 0.5, h * 0.5), has_mouse: false, buttons: [false; 3], held: HashSet::new(), idle: 0.0 },
+            inp: Input {
+                mouse: v2(w * 0.5, h * 0.5),
+                has_mouse: false,
+                buttons: [false; 3],
+                held: HashSet::new(),
+                idle: 0.0,
+            },
             w,
             h,
             t: 0.0,
             dt: 0.0,
             name: String::new(),
             goto: None,
+            world: crate::voxel::Sim::default(),
+            build_seeded: false,
         };
         cx.au.width = w;
         preload_glyphs(&mut cx.g);
@@ -250,6 +356,7 @@ impl Game {
         }
 
         self.mode.update(&mut self.cx);
+        self.cx.g.d3.finish();
 
         let cx = &mut self.cx;
         cx.fx.update(dt, &mut cx.rng);
@@ -265,7 +372,13 @@ impl Game {
         if let Some((to, from, color)) = self.cx.goto.take() {
             if self.trans.is_none() && to != self.mode_id {
                 self.cx.au.sfx(Sfx::Whoosh, 1.0, from.x);
-                self.trans = Some(Transition { t: 0.0, to, origin: from, color, switched: false });
+                self.trans = Some(Transition {
+                    t: 0.0,
+                    to,
+                    origin: from,
+                    color,
+                    switched: false,
+                });
             }
         }
     }
@@ -279,11 +392,18 @@ impl Game {
             cx.au.say_if_quiet("Casa");
         }
         self.home_hovered = hovered;
-        self.home_anim = crate::math::approach(self.home_anim, if hovered { 1.0 } else { 0.0 }, 12.0, cx.dt);
+        self.home_anim =
+            crate::math::approach(self.home_anim, if hovered { 1.0 } else { 0.0 }, 12.0, cx.dt);
         let k = 1.0 + 0.18 * self.home_anim;
         let wob = (cx.t * 9.0).sin() * 0.08 * self.home_anim;
         cx.g.shadow(Shape::Circle, p, r * k, 0.0, 1.0);
-        cx.g.sticker(Shape::Circle, p, r * k, 0.0, hsv(0.12, 0.25 + 0.2 * self.home_anim, 1.0));
+        cx.g.sticker(
+            Shape::Circle,
+            p,
+            r * k,
+            0.0,
+            hsv(0.12, 0.25 + 0.2 * self.home_anim, 1.0),
+        );
         cx.g.emoji("🏠", p, r * k * 0.62, wob, 1.0);
     }
 
@@ -293,7 +413,11 @@ impl Game {
             return;
         }
         let pulse = 0.85 + 0.15 * (cx.t * 4.0).sin();
-        cx.g.glow(cx.inp.mouse, 38.0 * pulse, hsv(cx.t * 0.1, 0.4, 1.0).alpha(0.35));
+        cx.g.glow(
+            cx.inp.mouse,
+            38.0 * pulse,
+            hsv(cx.t * 0.1, 0.4, 1.0).alpha(0.35),
+        );
     }
 
     fn draw_exit_ring(&mut self) {
@@ -309,14 +433,25 @@ impl Game {
         for i in 0..n {
             let f = i as f32 / n as f32;
             let a = f * crate::math::TAU - crate::math::PI * 0.5;
-            let c = if f <= k { hsv(0.55, 0.7, 0.9) } else { Rgba { r: 0.8, g: 0.8, b: 0.85, a: 0.8 } };
+            let c = if f <= k {
+                hsv(0.55, 0.7, 0.9)
+            } else {
+                Rgba {
+                    r: 0.8,
+                    g: 0.8,
+                    b: 0.85,
+                    a: 0.8,
+                }
+            };
             cx.g.circle(p + V2::from_angle(a) * 38.0, 5.0, c);
         }
         cx.g.emoji("🚪", p, 22.0, 0.0, 1.0);
     }
 
     fn update_transition(&mut self) {
-        let Some(tr) = self.trans.as_mut() else { return };
+        let Some(tr) = self.trans.as_mut() else {
+            return;
+        };
         tr.t += self.cx.dt;
         let half = TRANSITION * 0.5;
         if tr.t >= half && !tr.switched {
@@ -335,7 +470,10 @@ impl Game {
         let (center, r) = if tr.t < half {
             (tr.origin, ease_out_cubic(tr.t / half) * max_r)
         } else {
-            (cx.center(), (1.0 - ease_out_back((tr.t - half) / half).min(1.0)) * max_r)
+            (
+                cx.center(),
+                (1.0 - ease_out_back((tr.t - half) / half).min(1.0)) * max_r,
+            )
         };
         if r > 1.0 {
             cx.g.circle(center, r, tr.color);
@@ -350,7 +488,11 @@ impl Game {
 
     pub fn pointer_move(&mut self, x: f32, y: f32) {
         let to = v2(x, y);
-        let from = if self.cx.inp.has_mouse { self.cx.inp.mouse } else { to };
+        let from = if self.cx.inp.has_mouse {
+            self.cx.inp.mouse
+        } else {
+            to
+        };
         self.cx.inp.mouse = to;
         self.cx.inp.has_mouse = true;
         self.cx.inp.idle = 0.0;
@@ -467,7 +609,10 @@ fn preload_glyphs(g: &mut Gfx) {
     for w in vocab::ANIMALS.iter().chain(vocab::COUNTABLES) {
         g.glyph_id(w.emoji, false);
     }
-    for e in ["🏠", "🚪", "⌨️", "🎨", "🎵", "🐝", "🌸", "🌼", "🌻", "🌷", "🍯", "🗑️", "🌈", "🎹", "🔔", "🎸", "🥁", "⭐"] {
+    for e in [
+        "🏠", "🚪", "⌨️", "🎨", "🎵", "🐝", "🌸", "🌼", "🌻", "🌷", "🍯", "🗑️", "🌈", "🎹", "🔔",
+        "🎸", "🥁", "⭐",
+    ] {
         g.glyph_id(e, false);
     }
     g.glyph_id("♪", true);

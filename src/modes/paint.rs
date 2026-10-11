@@ -70,7 +70,12 @@ impl Paint {
         self.buttons = tools
             .into_iter()
             .enumerate()
-            .map(|(i, tool)| Button { tool, pos: v2(x0 + i as f32 * gap, y), r, hover: Hover::default() })
+            .map(|(i, tool)| Button {
+                tool,
+                pos: v2(x0 + i as f32 * gap, y),
+                r,
+                hover: Hover::default(),
+            })
             .collect();
     }
 
@@ -107,7 +112,8 @@ impl Paint {
                 self.tool = tool;
                 let name = vocab::PAINT_COLORS[c];
                 cx.au.say(&format!("¡{}!", capital(name.m)));
-                cx.au.note(pentatonic(c as i32 + 5, 60.0), Inst::Marimba, pos.x, 0.5);
+                cx.au
+                    .note(pentatonic(c as i32 + 5, 60.0), Inst::Marimba, pos.x, 0.5);
             }
             Tool::Rainbow => {
                 self.tool = tool;
@@ -141,7 +147,8 @@ impl Paint {
         if self.painted > 160.0 {
             self.painted = 0.0;
             let step = ((1.0 - to.y / cx.h) * 10.0) as i32;
-            cx.au.note(pentatonic(step + 5, 60.0), Inst::Soft, to.x, 0.18);
+            cx.au
+                .note(pentatonic(step + 5, 60.0), Inst::Soft, to.x, 0.18);
         }
     }
 
@@ -205,16 +212,24 @@ impl Activity for Paint {
 
         // Barra de herramientas.
         let bar_h = cx.h - self.bar_top;
-        cx.g.rrect(v2(cx.w * 0.5, self.bar_top + bar_h * 0.5 + 6.0), v2(cx.w * 0.5 + 10.0, bar_h * 0.5 + 6.0), 0.0, WHITE.alpha(0.85));
+        cx.g.rrect(
+            v2(cx.w * 0.5, self.bar_top + bar_h * 0.5 + 6.0),
+            v2(cx.w * 0.5 + 10.0, bar_h * 0.5 + 6.0),
+            0.0,
+            WHITE.alpha(0.85),
+        );
         let mouse = cx.inp.mouse;
         let mut announce = None;
         for (i, b) in self.buttons.iter_mut().enumerate() {
-            if b.hover.update(cx, cx.inp.has_mouse && mouse.dist(b.pos) < b.r * 1.1) {
+            if b.hover
+                .update(cx, cx.inp.has_mouse && mouse.dist(b.pos) < b.r * 1.1)
+            {
                 announce = Some(i);
             }
         }
         if let Some(i) = announce {
-            cx.au.sfx_vol(Sfx::Tick, 1.0 + i as f32 * 0.05, self.buttons[i].pos.x, 0.5);
+            cx.au
+                .sfx_vol(Sfx::Tick, 1.0 + i as f32 * 0.05, self.buttons[i].pos.x, 0.5);
         }
         for b in &self.buttons {
             let selected = b.tool == self.tool;
@@ -233,8 +248,24 @@ impl Activity for Paint {
                 }
                 Tool::Eraser => {
                     cx.g.sticker(Shape::Circle, p, r, 0.0, hex(0xF8BBD0));
-                    cx.g.shape_full(Shape::RoundRect, p, v2(r * 0.55, r * 0.32), -0.5, WHITE, 0.3, 0.0);
-                    cx.g.shape_full(Shape::RoundRect, p + v2(r * 0.22, r * 0.13), v2(r * 0.25, r * 0.3), -0.5 + std::f32::consts::FRAC_PI_2, hex(0x42A5F5), 0.3, 0.0);
+                    cx.g.shape_full(
+                        Shape::RoundRect,
+                        p,
+                        v2(r * 0.55, r * 0.32),
+                        -0.5,
+                        WHITE,
+                        0.3,
+                        0.0,
+                    );
+                    cx.g.shape_full(
+                        Shape::RoundRect,
+                        p + v2(r * 0.22, r * 0.13),
+                        v2(r * 0.25, r * 0.3),
+                        -0.5 + std::f32::consts::FRAC_PI_2,
+                        hex(0x42A5F5),
+                        0.3,
+                        0.0,
+                    );
                 }
                 Tool::Trash => {
                     cx.g.sticker(Shape::Circle, p, r, 0.0, hex(0xECEFF1));
@@ -274,8 +305,10 @@ impl Activity for Paint {
         self.brush = (self.brush * if dy < 0.0 { 1.2 } else { 1.0 / 1.2 }).clamp(0.4, 4.0);
         if self.brush != before {
             let p = cx.inp.mouse;
-            cx.fx.ripple(p, self.brush_r(cx) * 2.0, self.current_color());
-            cx.au.sfx_vol(Sfx::Bloop, if dy < 0.0 { 1.3 } else { 0.8 }, p.x, 0.5);
+            cx.fx
+                .ripple(p, self.brush_r(cx) * 2.0, self.current_color());
+            cx.au
+                .sfx_vol(Sfx::Bloop, if dy < 0.0 { 1.3 } else { 0.8 }, p.x, 0.5);
         }
         true
     }
@@ -289,7 +322,8 @@ impl Activity for Paint {
             let p = if cx.inp.has_mouse && cx.inp.mouse.y < self.bar_top {
                 cx.inp.mouse
             } else {
-                cx.rng.point(cx.w * 0.1, cx.h * 0.1, cx.w * 0.9, self.bar_top - 40.0)
+                cx.rng
+                    .point(cx.w * 0.1, cx.h * 0.1, cx.w * 0.9, self.bar_top - 40.0)
             };
             self.stamp(cx, p, k.is_enter());
         } else if let Some(d) = k.digit() {
@@ -297,7 +331,8 @@ impl Activity for Paint {
             self.brush = 0.4 + d as f32 * 0.4;
             cx.au.say(vocab::NUMBERS[d as usize]);
             let p = cx.inp.mouse;
-            cx.fx.ripple(p, self.brush_r(cx) * 2.0, self.current_color());
+            cx.fx
+                .ripple(p, self.brush_r(cx) * 2.0, self.current_color());
         } else if k.arrow().is_some() || k.letter().is_some() {
             // Letras y flechas: otro color de la paleta.
             let colors: Vec<usize> = self

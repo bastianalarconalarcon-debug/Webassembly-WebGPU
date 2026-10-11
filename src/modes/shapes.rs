@@ -66,14 +66,25 @@ impl Shapes {
 
     fn question(&self) -> String {
         let p = &self.pieces[self.target];
-        format!("¿Dónde está {}?", vocab::shape_phrase(&vocab::SHAPES[p.shape], &vocab::GAME_COLORS[p.color]))
+        format!(
+            "¿Dónde está {}?",
+            vocab::shape_phrase(&vocab::SHAPES[p.shape], &vocab::GAME_COLORS[p.color])
+        )
     }
 
     fn describe(&self, i: usize) -> String {
         let p = &self.pieces[i];
         let s = &vocab::SHAPES[p.shape];
-        let this = if s.gender == Gender::F { "Esa es" } else { "Ese es" };
-        format!("{} {}.", this, vocab::shape_phrase(s, &vocab::GAME_COLORS[p.color]))
+        let this = if s.gender == Gender::F {
+            "Esa es"
+        } else {
+            "Ese es"
+        };
+        format!(
+            "{} {}.",
+            this,
+            vocab::shape_phrase(s, &vocab::GAME_COLORS[p.color])
+        )
     }
 
     fn new_round(&mut self, cx: &mut Cx) {
@@ -136,7 +147,13 @@ impl Shapes {
     fn layout(&mut self, cx: &Cx) {
         let n = self.pieces.len();
         let portrait = cx.h > cx.w;
-        let per_row = if portrait { 2 } else if n <= 4 { n } else { 3 };
+        let per_row = if portrait {
+            2
+        } else if n <= 4 {
+            n
+        } else {
+            3
+        };
         let rows = n.div_ceil(per_row);
         let top = cx.h * 0.18 + 20.0;
         let cell_w = cx.w / per_row as f32;
@@ -144,10 +161,17 @@ impl Shapes {
         let r = (cell_w.min(cell_h) * 0.33).min(cx.unit() * 0.2);
         for (i, p) in self.pieces.iter_mut().enumerate() {
             let row = i / per_row;
-            let in_row = if row == rows - 1 { n - row * per_row } else { per_row };
+            let in_row = if row == rows - 1 {
+                n - row * per_row
+            } else {
+                per_row
+            };
             let col = i % per_row;
             let offset = (per_row - in_row) as f32 * cell_w * 0.5;
-            p.pos = v2(offset + (col as f32 + 0.5) * cell_w, top + (row as f32 + 0.5) * cell_h);
+            p.pos = v2(
+                offset + (col as f32 + 0.5) * cell_w,
+                top + (row as f32 + 0.5) * cell_h,
+            );
             p.r = r;
         }
     }
@@ -245,7 +269,10 @@ impl Activity for Shapes {
 
         // Botón para repetir la pregunta.
         let (sp, sr) = Shapes::speaker_pos(cx);
-        if self.speaker.update(cx, cx.inp.has_mouse && cx.inp.mouse.dist(sp) < sr * 1.1) {
+        if self
+            .speaker
+            .update(cx, cx.inp.has_mouse && cx.inp.mouse.dist(sp) < sr * 1.1)
+        {
             cx.au.sfx_vol(Sfx::Tick, 1.3, sp.x, 0.5);
         }
         self.speaker_pulse = (self.speaker_pulse - dt * 0.8).max(0.0);
@@ -274,7 +301,11 @@ impl Activity for Shapes {
         for (i, p) in self.pieces.iter().enumerate() {
             let k = ease_out_back(((p.appear - p.delay) / 0.5).clamp(0.0, 1.0));
             let shake = (p.shake * 30.0).sin() * p.shake * p.r * 0.15;
-            let win = if p.spin > 0.0 { ease_out_elastic(1.0 - p.spin) } else { 0.0 };
+            let win = if p.spin > 0.0 {
+                ease_out_elastic(1.0 - p.spin)
+            } else {
+                0.0
+            };
             let mut r = p.r * k * (1.0 + 0.08 * p.hover.anim + 0.25 * p.spin);
             let pos = p.pos + v2(shake, -(t * 1.5 + i as f32).sin() * p.r * 0.03);
             let rot = win * crate::math::TAU + (t + i as f32).sin() * 0.05;
@@ -318,7 +349,8 @@ impl Activity for Shapes {
             self.ask(cx);
         } else {
             let n = cx.rng.int(8) as f32;
-            cx.au.note(midi(67.0 + n * 2.0), Inst::Soft, cx.w * 0.5, 0.3);
+            cx.au
+                .note(midi(67.0 + n * 2.0), Inst::Soft, cx.w * 0.5, 0.3);
         }
     }
 }
@@ -337,7 +369,11 @@ mod tests {
             for _ in 0..30 {
                 s.new_round(&mut g.cx);
                 let t = &s.pieces[s.target];
-                let same = s.pieces.iter().filter(|p| p.shape == t.shape && p.color == t.color).count();
+                let same = s
+                    .pieces
+                    .iter()
+                    .filter(|p| p.shape == t.shape && p.color == t.color)
+                    .count();
                 assert_eq!(same, 1);
             }
         }
@@ -352,6 +388,9 @@ mod tests {
         s.click_piece(&mut g.cx, wrong);
         let said = g.cx.au.spoken();
         assert_eq!(said.len(), 1);
-        assert!(said[0].starts_with("Ese es") || said[0].starts_with("Esa es"), "{said:?}");
+        assert!(
+            said[0].starts_with("Ese es") || said[0].starts_with("Esa es"),
+            "{said:?}"
+        );
     }
 }

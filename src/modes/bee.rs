@@ -7,7 +7,7 @@ use super::{Activity, IdlePrompt};
 use crate::audio::{Inst, Sfx};
 use crate::game::{Cx, Key};
 use crate::gfx::{Backdrop, Shape};
-use crate::math::{ease_out_back, hex, hsv, pentatonic, v2, Rgba, V2, TAU, WHITE};
+use crate::math::{ease_out_back, hex, hsv, pentatonic, v2, Rgba, TAU, V2, WHITE};
 use crate::vocab;
 
 const FLOWERS: [&str; 4] = ["🌸", "🌼", "🌻", "🌷"];
@@ -47,7 +47,13 @@ pub struct Bee {
 
 impl Bee {
     pub fn new(cx: &mut Cx) -> Bee {
-        let pad = |dir, code| Pad { dir, code, pos: V2::ZERO, half: 1.0, flash: 0.0 };
+        let pad = |dir, code| Pad {
+            dir,
+            code,
+            pos: V2::ZERO,
+            half: 1.0,
+            flash: 0.0,
+        };
         let mut b = Bee {
             pos: v2(cx.w * 0.4, cx.h * 0.5),
             vel: V2::ZERO,
@@ -97,7 +103,9 @@ impl Bee {
         let fr = cx.unit() * 0.06;
         let mut best = cx.center();
         for _ in 0..20 {
-            let p = cx.rng.point(fr * 2.0, cx.h * 0.2, cx.w - fr * 2.0, cx.h - fr * 2.0);
+            let p = cx
+                .rng
+                .point(fr * 2.0, cx.h * 0.2, cx.w - fr * 2.0, cx.h - fr * 2.0);
             let near_bee = p.dist(self.pos) < cx.unit() * 0.3;
             let near_pad = self.pads.iter().any(|pad| p.dist(pad.pos) < pad.half * 4.0);
             let near_flower = self.flowers.iter().any(|f| f.pos.dist(p) < fr * 3.0);
@@ -106,7 +114,12 @@ impl Bee {
                 break;
             }
         }
-        self.flowers.push(Flower { pos: best, emoji: *cx.rng.pick(&FLOWERS), age: 0.0, phase: cx.rng.range(0.0, TAU) });
+        self.flowers.push(Flower {
+            pos: best,
+            emoji: *cx.rng.pick(&FLOWERS),
+            age: 0.0,
+            phase: cx.rng.range(0.0, TAU),
+        });
     }
 
     fn collect(&mut self, cx: &mut Cx, i: usize) {
@@ -116,15 +129,25 @@ impl Bee {
         cx.fx.sparkle(&mut cx.rng, p, 18, hex(0xFFEB3B), 70.0);
         let size = cx.unit() * 0.05;
         cx.fx.fling_emoji(&mut cx.rng, p, f.emoji, size);
-        cx.au.note(pentatonic(self.count as i32 + 4, 60.0), Inst::Marimba, p.x, 0.6);
+        cx.au.note(
+            pentatonic(self.count as i32 + 4, 60.0),
+            Inst::Marimba,
+            p.x,
+            0.6,
+        );
         let n = self.count;
-        cx.au.say(&format!("¡{}!", vocab::count_phrase(n, &vocab::FLOR)));
+        cx.au
+            .say(&format!("¡{}!", vocab::count_phrase(n, &vocab::FLOR)));
         self.respawn.push(0.9);
         if n >= GOAL {
             cx.au.sfx(Sfx::Fanfare, 1.0, cx.w * 0.5);
             cx.au.say_after(1.6, "¡La abeja está feliz! ¡Bravo!");
             for k in 0..4 {
-                cx.fx.rocket(&mut cx.rng, v2(cx.w * (0.2 + 0.2 * k as f32), cx.h), cx.h * 0.6);
+                cx.fx.rocket(
+                    &mut cx.rng,
+                    v2(cx.w * (0.2 + 0.2 * k as f32), cx.h),
+                    cx.h * 0.6,
+                );
             }
             for k in 0..GOAL as usize {
                 let (sp, _) = Bee::slot(cx, k);
@@ -169,7 +192,8 @@ impl Activity for Bee {
         cx.g.background(hex(0x81D4FA), hex(0xE1F5C4), Backdrop::Meadow, 0.0);
         let dt = cx.dt;
         let t = cx.t;
-        self.idle.tick(cx, "¡Usa las flechas para mover a la abeja!");
+        self.idle
+            .tick(cx, "¡Usa las flechas para mover a la abeja!");
         let waiting = self.idle.waiting(cx);
 
         // Flores nuevas.
@@ -209,14 +233,26 @@ impl Activity for Bee {
         if moved > 0.5 {
             self.buzz_t -= dt;
             if self.buzz_t <= 0.0 {
-                cx.au.sfx_vol(Sfx::Buzz, 1.0 + self.vel.len() / max * 0.3, self.pos.x, 0.35);
+                cx.au.sfx_vol(
+                    Sfx::Buzz,
+                    1.0 + self.vel.len() / max * 0.3,
+                    self.pos.x,
+                    0.35,
+                );
                 self.buzz_t = 0.7;
             }
             self.trail_acc += moved;
             while self.trail_acc > 22.0 {
                 self.trail_acc -= 22.0;
                 let back = if self.face_right { -1.0 } else { 1.0 };
-                let mut p = crate::fx::Particle::new(self.pos + v2(back * r * 0.6, r * 0.1), V2::ZERO, 0.9, 4.0, hex(0xFFF59D), crate::fx::Look::Shape(Shape::Circle));
+                let mut p = crate::fx::Particle::new(
+                    self.pos + v2(back * r * 0.6, r * 0.1),
+                    V2::ZERO,
+                    0.9,
+                    4.0,
+                    hex(0xFFF59D),
+                    crate::fx::Look::Shape(Shape::Circle),
+                );
                 p.grow = -3.0;
                 cx.fx.add(p);
             }
@@ -225,7 +261,11 @@ impl Activity for Bee {
 
         // ¿Tocó una flor?
         let fr = cx.unit() * 0.06;
-        if let Some(i) = self.flowers.iter().position(|f| f.age > 0.3 && f.pos.dist(self.pos) < (r + fr) * 0.75) {
+        if let Some(i) = self
+            .flowers
+            .iter()
+            .position(|f| f.age > 0.3 && f.pos.dist(self.pos) < (r + fr) * 0.75)
+        {
             self.collect(cx, i);
         }
 
@@ -235,7 +275,15 @@ impl Activity for Bee {
             let k = ease_out_back((f.age / 0.6).min(1.0));
             let sway = (t * 2.0 + f.phase).sin() * 0.12;
             let stem_base = f.pos + v2(0.0, fr * 1.6);
-            cx.g.shape_full(Shape::RoundRect, (f.pos + stem_base) * 0.5, v2(fr * 0.07, fr * 0.8 * k), sway * 0.5, hex(0x43A047), 1.0, 0.0);
+            cx.g.shape_full(
+                Shape::RoundRect,
+                (f.pos + stem_base) * 0.5,
+                v2(fr * 0.07, fr * 0.8 * k),
+                sway * 0.5,
+                hex(0x43A047),
+                1.0,
+                0.0,
+            );
             cx.g.emoji_shadow(f.emoji, f.pos, fr * k, sway, 1.0);
             cx.g.emoji(f.emoji, f.pos, fr * k, sway, 1.0);
         }
@@ -243,7 +291,11 @@ impl Activity for Bee {
         // Abeja.
         let bob = (t * 7.0).sin() * r * 0.06;
         let tilt = (self.vel.y / max) * 0.35 * if self.face_right { 1.0 } else { -1.0 };
-        let loop_rot = if self.spin > 0.0 { (1.0 - self.spin) * TAU * if self.face_right { -1.0 } else { 1.0 } } else { 0.0 };
+        let loop_rot = if self.spin > 0.0 {
+            (1.0 - self.spin) * TAU * if self.face_right { -1.0 } else { 1.0 }
+        } else {
+            0.0
+        };
         let flip = self.face_right == BEE_FACES_LEFT;
         let wing = 1.0 + (t * 40.0).sin() * 0.03;
         let bp = self.pos + v2(0.0, bob);
@@ -252,7 +304,12 @@ impl Activity for Bee {
         // Contador de flores.
         let (first, sr) = Bee::slot(cx, 0);
         let (last, _) = Bee::slot(cx, GOAL as usize - 1);
-        cx.g.rrect(v2((first.x + last.x) * 0.5, first.y), v2((last.x - first.x) * 0.5 + sr * 1.4, sr * 1.3), 1.0, WHITE.alpha(0.45));
+        cx.g.rrect(
+            v2((first.x + last.x) * 0.5, first.y),
+            v2((last.x - first.x) * 0.5 + sr * 1.4, sr * 1.3),
+            1.0,
+            WHITE.alpha(0.45),
+        );
         for i in 0..GOAL as usize {
             let (p, sr) = Bee::slot(cx, i);
             if (i as u32) < self.count {
@@ -265,21 +322,61 @@ impl Activity for Bee {
         // Flechas en pantalla (como las del teclado).
         for (i, pad) in self.pads.iter_mut().enumerate() {
             let held = cx.inp.held(pad.code) || self.pad_pressed == Some(i);
-            pad.flash = if held { 1.0 } else { (pad.flash - dt * 4.0).max(0.0) };
-            let hint = if waiting { ((t * 3.0 - i as f32 * 0.8).sin().max(0.0)).powi(3) } else { 0.0 };
+            pad.flash = if held {
+                1.0
+            } else {
+                (pad.flash - dt * 4.0).max(0.0)
+            };
+            let hint = if waiting {
+                ((t * 3.0 - i as f32 * 0.8).sin().max(0.0)).powi(3)
+            } else {
+                0.0
+            };
             let lit = pad.flash.max(hint);
             let s = pad.half;
             let press = v2(0.0, lit * s * 0.12);
-            cx.g.shape_full(Shape::RoundRect, pad.pos + v2(0.0, s * 0.18), v2(s, s), 0.0, hex(0x546E7A), 0.25, 0.0);
-            let face = Rgba { r: 0.97, g: 0.97, b: 1.0, a: 1.0 }.mix(hex(0xFFD54F), lit);
-            cx.g.shape_full(Shape::RoundRect, pad.pos + press, v2(s, s), 0.0, face, 0.25, 0.0);
+            cx.g.shape_full(
+                Shape::RoundRect,
+                pad.pos + v2(0.0, s * 0.18),
+                v2(s, s),
+                0.0,
+                hex(0x546E7A),
+                0.25,
+                0.0,
+            );
+            let face = Rgba {
+                r: 0.97,
+                g: 0.97,
+                b: 1.0,
+                a: 1.0,
+            }
+            .mix(hex(0xFFD54F), lit);
+            cx.g.shape_full(
+                Shape::RoundRect,
+                pad.pos + press,
+                v2(s, s),
+                0.0,
+                face,
+                0.25,
+                0.0,
+            );
             let rot = pad.dir.angle();
-            cx.g.shape_full(Shape::Arrow, pad.pos + press, v2(s * 0.6, s * 0.6), rot, hex(0x37474F), 0.0, 0.0);
+            cx.g.shape_full(
+                Shape::Arrow,
+                pad.pos + press,
+                v2(s * 0.6, s * 0.6),
+                rot,
+                hex(0x37474F),
+                0.0,
+                0.0,
+            );
         }
     }
 
     fn down(&mut self, cx: &mut Cx, p: V2, _button: u32) {
-        if let Some(i) = self.pads.iter().position(|pad| (p.x - pad.pos.x).abs() < pad.half * 1.1 && (p.y - pad.pos.y).abs() < pad.half * 1.1) {
+        if let Some(i) = self.pads.iter().position(|pad| {
+            (p.x - pad.pos.x).abs() < pad.half * 1.1 && (p.y - pad.pos.y).abs() < pad.half * 1.1
+        }) {
             self.pad_pressed = Some(i);
             cx.au.sfx_vol(Sfx::Tick, 1.0, p.x, 0.6);
         }
@@ -307,6 +404,7 @@ impl Activity for Bee {
             return;
         }
         cx.au.sfx_vol(Sfx::Buzz, 1.3, self.pos.x, 0.6);
-        cx.fx.sparkle(&mut cx.rng, self.pos, 10, hsv(0.14, 0.7, 1.0), 50.0);
+        cx.fx
+            .sparkle(&mut cx.rng, self.pos, 10, hsv(0.14, 0.7, 1.0), 50.0);
     }
 }

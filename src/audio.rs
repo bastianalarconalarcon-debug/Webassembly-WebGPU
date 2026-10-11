@@ -75,28 +75,32 @@ impl Audio {
     pub fn note(&mut self, freq: f32, inst: Inst, x: f32, vol: f32) {
         if self.events.len() < 256 {
             let pan = self.pan(x);
-            self.events.push([EV_NOTE, freq, inst as u32 as f32, pan, vol, 0.0]);
+            self.events
+                .push([EV_NOTE, freq, inst as u32 as f32, pan, vol, 0.0]);
         }
     }
 
     pub fn sfx(&mut self, s: Sfx, pitch: f32, x: f32) {
         if self.events.len() < 256 {
             let pan = self.pan(x);
-            self.events.push([EV_SFX, s as u32 as f32, pitch, pan, 1.0, 0.0]);
+            self.events
+                .push([EV_SFX, s as u32 as f32, pitch, pan, 1.0, 0.0]);
         }
     }
 
     pub fn sfx_vol(&mut self, s: Sfx, pitch: f32, x: f32, vol: f32) {
         if self.events.len() < 256 {
             let pan = self.pan(x);
-            self.events.push([EV_SFX, s as u32 as f32, pitch, pan, vol, 0.0]);
+            self.events
+                .push([EV_SFX, s as u32 as f32, pitch, pan, vol, 0.0]);
         }
     }
 
     fn push_speech(&mut self, text: &str) {
         let off = self.text.len() as f32;
         self.text.extend_from_slice(text.as_bytes());
-        self.events.push([EV_SPEAK, off, text.len() as f32, 1.0, 0.0, 0.0]);
+        self.events
+            .push([EV_SPEAK, off, text.len() as f32, 1.0, 0.0, 0.0]);
         self.since_say = 0.0;
     }
 

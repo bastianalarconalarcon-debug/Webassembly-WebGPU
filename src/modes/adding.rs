@@ -35,7 +35,11 @@ enum After {
 enum Phase {
     Asking,
     /// Contando objeto por objeto en voz alta.
-    Counting { i: usize, timer: f32, then: After },
+    Counting {
+        i: usize,
+        timer: f32,
+        then: After,
+    },
     Won(f32),
 }
 
@@ -98,13 +102,23 @@ impl Adding {
 
     /// Posiciones en grupitos (como en un dado), centrados en `c`.
     fn group(c: V2, n: u32, r: f32, max_per_row: u32) -> Vec<V2> {
-        let per_row = if n <= 3 { n.max(1) } else if n <= 6 { 3 } else { max_per_row };
+        let per_row = if n <= 3 {
+            n.max(1)
+        } else if n <= 6 {
+            3
+        } else {
+            max_per_row
+        };
         let rows = n.div_ceil(per_row);
         let gap = r * 2.3;
         (0..n)
             .map(|i| {
                 let row = i / per_row;
-                let in_row = if row == rows - 1 { n - row * per_row } else { per_row };
+                let in_row = if row == rows - 1 {
+                    n - row * per_row
+                } else {
+                    per_row
+                };
                 let col = i % per_row;
                 let x = c.x + (col as f32 - (in_row as f32 - 1.0) * 0.5) * gap;
                 let y = c.y + (row as f32 - (rows as f32 - 1.0) * 0.5) * gap;
@@ -139,14 +153,28 @@ impl Adding {
         let ans = self.total();
         let max = if self.level == 0 { 6 } else { 10 };
         let mut opts = vec![ans];
-        let mut near: Vec<u32> = [ans.saturating_sub(1), ans + 1, ans.saturating_sub(2), ans + 2]
-            .into_iter()
-            .filter(|&n| n >= 1 && n <= max && n != ans)
-            .collect();
+        let mut near: Vec<u32> = [
+            ans.saturating_sub(1),
+            ans + 1,
+            ans.saturating_sub(2),
+            ans + 2,
+        ]
+        .into_iter()
+        .filter(|&n| n >= 1 && n <= max && n != ans)
+        .collect();
         cx.rng.shuffle(&mut near);
         opts.extend(near.into_iter().take(2));
         cx.rng.shuffle(&mut opts);
-        self.choices = opts.into_iter().map(|n| Choice { n, pos: V2::ZERO, r: 1.0, hover: Hover::default(), shake: 0.0 }).collect();
+        self.choices = opts
+            .into_iter()
+            .map(|n| Choice {
+                n,
+                pos: V2::ZERO,
+                r: 1.0,
+                hover: Hover::default(),
+                shake: 0.0,
+            })
+            .collect();
         self.layout_choices(cx);
         self.phase = Phase::Asking;
         self.ask_in = Some(0.8);
@@ -163,7 +191,14 @@ impl Adding {
             targets.extend(Adding::group(v2(cx.w * 0.6, y), self.b, r, 3));
         }
         if self.objs.len() != targets.len() {
-            self.objs = targets.iter().map(|&t| Obj { pos: t, target: t, bounce: 0.0 }).collect();
+            self.objs = targets
+                .iter()
+                .map(|&t| Obj {
+                    pos: t,
+                    target: t,
+                    bounce: 0.0,
+                })
+                .collect();
         }
         for (o, t) in self.objs.iter_mut().zip(targets) {
             o.target = t;
@@ -174,7 +209,10 @@ impl Adding {
         let n = self.choices.len() as f32;
         let r = (cx.unit() * 0.11).min(cx.w / (n * 2.8));
         for (i, c) in self.choices.iter_mut().enumerate() {
-            c.pos = v2(cx.w * 0.5 + (i as f32 - (n - 1.0) * 0.5) * r * 2.8, cx.h * 0.8);
+            c.pos = v2(
+                cx.w * 0.5 + (i as f32 - (n - 1.0) * 0.5) * r * 2.8,
+                cx.h * 0.8,
+            );
             c.r = r;
         }
     }
@@ -218,8 +256,15 @@ impl Adding {
             // Juntar los grupos y contar todo.
             self.merged = true;
             self.layout_objs(cx);
-            self.phase = Phase::Counting { i: 0, timer: 0.9, then: After::Celebrate };
-            cx.au.say(&format!("¡Sí! ¡{}! Contemos.", capitalize(vocab::NUMBERS[n as usize])));
+            self.phase = Phase::Counting {
+                i: 0,
+                timer: 0.9,
+                then: After::Celebrate,
+            };
+            cx.au.say(&format!(
+                "¡Sí! ¡{}! Contemos.",
+                capitalize(vocab::NUMBERS[n as usize])
+            ));
         } else {
             self.streak = 0;
             if let Some(c) = self.choices.iter_mut().find(|c| c.n == n) {
@@ -228,7 +273,11 @@ impl Adding {
             cx.au.sfx(Sfx::Oops, 1.0, at.x);
             let name = vocab::NUMBERS.get(n as usize).copied().unwrap_or("otro");
             cx.au.say(&format!("Ese es el {}. ¡Contemos juntos!", name));
-            self.phase = Phase::Counting { i: 0, timer: 1.8, then: After::Ask };
+            self.phase = Phase::Counting {
+                i: 0,
+                timer: 1.8,
+                then: After::Ask,
+            };
         }
     }
 
@@ -246,10 +295,15 @@ impl Adding {
                     o.bounce = 1.0;
                     let p = o.pos;
                     cx.au.say(vocab::NUMBERS[(i + 1).min(10)]);
-                    cx.au.note(pentatonic(i as i32 + 4, 60.0), Inst::Marimba, p.x, 0.5);
+                    cx.au
+                        .note(pentatonic(i as i32 + 4, 60.0), Inst::Marimba, p.x, 0.5);
                     let c = hsv(i as f32 * 0.1, 0.6, 1.0);
                     cx.fx.sparkle(&mut cx.rng, p, 6, c, 30.0);
-                    self.phase = Phase::Counting { i: i + 1, timer: 0.8, then };
+                    self.phase = Phase::Counting {
+                        i: i + 1,
+                        timer: 0.8,
+                        then,
+                    };
                 } else if then == After::Celebrate {
                     let n = self.total();
                     let phrase = if self.adding() {
@@ -265,7 +319,11 @@ impl Adding {
                     cx.au.say(&phrase);
                     cx.au.sfx(Sfx::Fanfare, 1.0, cx.w * 0.5);
                     for k in 0..3 {
-                        cx.fx.rocket(&mut cx.rng, v2(cx.w * (0.25 + 0.25 * k as f32), cx.h), cx.h * 0.55);
+                        cx.fx.rocket(
+                            &mut cx.rng,
+                            v2(cx.w * (0.25 + 0.25 * k as f32), cx.h),
+                            cx.h * 0.55,
+                        );
                     }
                     self.phase = Phase::Won(3.0);
                 } else {
@@ -298,7 +356,11 @@ impl Adding {
         let gap = dot * 2.6;
         for i in 0..n {
             let row = i / per_row;
-            let in_row = if row == rows - 1 { n - row * per_row } else { per_row };
+            let in_row = if row == rows - 1 {
+                n - row * per_row
+            } else {
+                per_row
+            };
             let col = i % per_row;
             let x = c.x + (col as f32 - (in_row as f32 - 1.0) * 0.5) * gap;
             let y = c.y + r * 0.5 + (row as f32 - (rows as f32 - 1.0) * 0.5) * gap;
@@ -350,11 +412,15 @@ impl Activity for Adding {
 
         // Botón 🔊.
         let (sp, sr) = Adding::speaker_pos(cx);
-        if self.speaker.update(cx, cx.inp.has_mouse && cx.inp.mouse.dist(sp) < sr * 1.1) {
+        if self
+            .speaker
+            .update(cx, cx.inp.has_mouse && cx.inp.mouse.dist(sp) < sr * 1.1)
+        {
             cx.au.sfx_vol(Sfx::Tick, 1.3, sp.x, 0.5);
         }
         self.speaker_pulse = (self.speaker_pulse - dt * 0.8).max(0.0);
-        let srr = sr * (1.0 + 0.15 * self.speaker.anim + self.speaker_pulse * (t * 12.0).sin().abs() * 0.12);
+        let srr = sr
+            * (1.0 + 0.15 * self.speaker.anim + self.speaker_pulse * (t * 12.0).sin().abs() * 0.12);
         cx.g.shadow(Shape::Circle, sp, srr, 0.0, 1.0);
         cx.g.sticker(Shape::Circle, sp, srr, 0.0, WHITE.alpha(0.95));
         cx.g.emoji("🔊", sp, srr * 0.6, 0.0, 1.0);
@@ -369,7 +435,13 @@ impl Activity for Adding {
             let p = o.pos - v2(0.0, jump);
             let rr = r * k * (1.0 + 0.2 * o.bounce);
             cx.g.emoji_shadow(self.word.emoji, p, rr, 0.0, 1.0);
-            cx.g.emoji(self.word.emoji, p, rr, (t * 2.0 + i as f32).sin() * 0.06, 1.0);
+            cx.g.emoji(
+                self.word.emoji,
+                p,
+                rr,
+                (t * 2.0 + i as f32).sin() * 0.06,
+                1.0,
+            );
         }
 
         // Signos + = ?
@@ -380,9 +452,21 @@ impl Activity for Adding {
             cx.g.text("+", v2(cx.w * 0.425, y), sign_r, 0.0, hex(0xFF7043), 0.12);
             cx.g.text("=", v2(cx.w * 0.78, y), sign_r, 0.0, hex(0x42A5F5), 0.12);
             let q = v2(cx.w * 0.89, y);
-            cx.g.shape_full(Shape::RoundRect, q, v2(sign_r, sign_r * 1.15), 0.0, WHITE, 0.3, 0.0);
+            cx.g.shape_full(
+                Shape::RoundRect,
+                q,
+                v2(sign_r, sign_r * 1.15),
+                0.0,
+                WHITE,
+                0.3,
+                0.0,
+            );
             cx.g.ring(q, sign_r * 1.25, 3.0, ink.alpha(0.3));
-            let shown = if matches!(self.phase, Phase::Won(_)) { self.total().to_string() } else { "?".to_string() };
+            let shown = if matches!(self.phase, Phase::Won(_)) {
+                self.total().to_string()
+            } else {
+                "?".to_string()
+            };
             cx.g.text(&shown, q, sign_r * 0.9, 0.0, hex(0x8E24AA), 0.1);
         } else if self.adding() && matches!(self.phase, Phase::Won(_)) {
             let txt = format!("{}+{}={}", self.a, self.b, self.total());
@@ -390,7 +474,14 @@ impl Activity for Adding {
             for (i, ch) in txt.chars().enumerate() {
                 let x = cx.w * 0.5 + (i as f32 - (n - 1.0) * 0.5) * sign_r * 1.5;
                 let s = ch.to_string();
-                cx.g.text(&s, v2(x, cx.h * 0.62), sign_r * 0.8, 0.0, hsv(i as f32 * 0.15, 0.7, 0.95), 0.12);
+                cx.g.text(
+                    &s,
+                    v2(x, cx.h * 0.62),
+                    sign_r * 0.8,
+                    0.0,
+                    hsv(i as f32 * 0.15, 0.7, 0.95),
+                    0.12,
+                );
             }
         }
 
@@ -401,7 +492,8 @@ impl Activity for Adding {
         for (i, c) in self.choices.iter_mut().enumerate() {
             c.shake = (c.shake - dt * 1.8).max(0.0);
             if c.hover.update(cx, has_mouse && mouse.dist(c.pos) < c.r) && asking {
-                cx.au.sfx_vol(Sfx::Tick, 0.9 + i as f32 * 0.15, c.pos.x, 0.4);
+                cx.au
+                    .sfx_vol(Sfx::Tick, 0.9 + i as f32 * 0.15, c.pos.x, 0.4);
             }
         }
         for (i, c) in self.choices.iter().enumerate() {
@@ -426,7 +518,12 @@ impl Activity for Adding {
             }
             return;
         }
-        if let Some(n) = self.choices.iter().find(|c| p.dist(c.pos) < c.r * 1.1).map(|c| c.n) {
+        if let Some(n) = self
+            .choices
+            .iter()
+            .find(|c| p.dist(c.pos) < c.r * 1.1)
+            .map(|c| c.n)
+        {
             self.answer(cx, n, p);
             return;
         }
@@ -439,7 +536,12 @@ impl Activity for Adding {
                     self.tap_count = (self.tap_count % 10) + 1;
                     self.tap_timer = 3.0;
                     cx.au.say(vocab::NUMBERS[self.tap_count as usize]);
-                    cx.au.note(pentatonic(self.tap_count as i32 + 4, 60.0), Inst::Marimba, p.x, 0.4);
+                    cx.au.note(
+                        pentatonic(self.tap_count as i32 + 4, 60.0),
+                        Inst::Marimba,
+                        p.x,
+                        0.4,
+                    );
                 }
                 return;
             }
@@ -452,13 +554,23 @@ impl Activity for Adding {
         if let Some(d) = k.digit() {
             // "1" y "0" seguidos no se distinguen de 10: el 0 vale como 10.
             let n = if d == 0 { 10 } else { d };
-            let at = self.choices.iter().find(|c| c.n == n).map(|c| c.pos).unwrap_or(cx.center());
+            let at = self
+                .choices
+                .iter()
+                .find(|c| c.n == n)
+                .map(|c| c.pos)
+                .unwrap_or(cx.center());
             self.answer(cx, n, at);
         } else if (k.is("Space") || k.is_enter()) && self.phase == Phase::Asking {
             self.ask(cx);
         } else {
             let x = cx.rng.range(0.2, 0.8) * cx.w;
-            cx.au.note(pentatonic(cx.rng.int(8) as i32 + 4, 60.0), Inst::Soft, x, 0.3);
+            cx.au.note(
+                pentatonic(cx.rng.int(8) as i32 + 4, 60.0),
+                Inst::Soft,
+                x,
+                0.3,
+            );
         }
     }
 }
@@ -476,8 +588,19 @@ mod tests {
             s.level = level;
             for _ in 0..50 {
                 s.new_round(&mut g.cx);
-                let max = if level == 0 { 5 } else if level == 1 { 5 } else { 10 };
-                assert!(s.total() >= 1 && s.total() <= max, "nivel {level}: {}+{}", s.a, s.b);
+                let max = if level == 0 {
+                    5
+                } else if level == 1 {
+                    5
+                } else {
+                    10
+                };
+                assert!(
+                    s.total() >= 1 && s.total() <= max,
+                    "nivel {level}: {}+{}",
+                    s.a,
+                    s.b
+                );
                 assert!(s.choices.iter().any(|c| c.n == s.total()));
                 assert_eq!(s.objs.len() as u32, s.total());
             }

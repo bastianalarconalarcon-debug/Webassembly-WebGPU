@@ -6,6 +6,7 @@ use crate::math::{approach, V2};
 mod adding;
 mod bee;
 mod bubbles;
+mod build;
 mod home;
 mod keys;
 mod music;
@@ -24,6 +25,7 @@ pub enum ModeId {
     Bee,
     Typing,
     Adding,
+    Build,
 }
 
 pub fn make(id: ModeId, cx: &mut Cx) -> Box<dyn Activity> {
@@ -37,6 +39,7 @@ pub fn make(id: ModeId, cx: &mut Cx) -> Box<dyn Activity> {
         ModeId::Bee => Box::new(bee::Bee::new(cx)),
         ModeId::Typing => Box::new(typing::Typing::new(cx)),
         ModeId::Adding => Box::new(adding::Adding::new(cx)),
+        ModeId::Build => Box::new(build::Build::new(cx)),
     }
 }
 
@@ -91,7 +94,11 @@ pub struct IdlePrompt {
 
 impl IdlePrompt {
     pub fn new(after: f32) -> IdlePrompt {
-        IdlePrompt { after, next: after, count: 0 }
+        IdlePrompt {
+            after,
+            next: after,
+            count: 0,
+        }
     }
 
     /// Devuelve true en el momento de dar la pista.

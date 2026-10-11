@@ -1,6 +1,6 @@
 //! Generador pseudoaleatorio pequeño (xorshift64*), sin dependencias.
 
-use crate::math::{v2, V2, TAU};
+use crate::math::{v2, TAU, V2};
 
 pub struct Rng(u64);
 
