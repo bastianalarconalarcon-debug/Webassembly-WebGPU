@@ -146,6 +146,30 @@ pub static COUNTABLES: &[Word] = &[
     MANZANA, FRUTILLA, ESTRELLA, PELOTA, FLOR, GLOBO, PATO, PERRO, GATO, PEZ, MARIPOSA, AUTO, PLATANO, UVA, PALTA,
 ];
 
+/// Palabras para el juego Escribir, de las más cortas a las más largas.
+pub static WRITE_WORDS: &[Word] = &[
+    m("sol", "soles", "☀️"),
+    OSO,
+    PEZ,
+    UVA,
+    f("mamá", "mamás", "👩"),
+    m("papá", "papás", "👨"),
+    GATO,
+    PATO,
+    VACA,
+    f("casa", "casas", "🏠"),
+    f("luna", "lunas", "🌙"),
+    MONO,
+    RANA,
+    AUTO,
+    TREN,
+    FLOR,
+    LEON,
+    PERRO,
+    PALTA,
+    ABEJA,
+];
+
 pub static NUMBERS: [&str; 11] = ["cero", "uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve", "diez"];
 
 /// "una flor", "dos flores"... (concordancia de "uno" con el género)

@@ -99,7 +99,7 @@ pub extern "C" fn key_up(code: u32) {
 }
 
 /// Índice del juego activo: 0 inicio, 1 teclado, 2 pintar, 3 burbujas,
-/// 4 formas, 5 música, 6 abeja.
+/// 4 formas, 5 música, 6 abeja, 7 escribir, 8 sumar.
 #[no_mangle]
 pub extern "C" fn current_mode() -> u32 {
     with(|g| g.mode_index())
@@ -249,7 +249,17 @@ mod tests {
     /// entrar en pánico y siempre debe dibujar algo.
     #[test]
     fn every_mode_survives_a_toddler() {
-        let modes = [ModeId::Home, ModeId::Keys, ModeId::Paint, ModeId::Bubbles, ModeId::Shapes, ModeId::Music, ModeId::Bee];
+        let modes = [
+            ModeId::Home,
+            ModeId::Keys,
+            ModeId::Paint,
+            ModeId::Bubbles,
+            ModeId::Shapes,
+            ModeId::Music,
+            ModeId::Bee,
+            ModeId::Typing,
+            ModeId::Adding,
+        ];
         for (mi, mode) in modes.into_iter().enumerate() {
             let mut g = Game::new(1280.0, 720.0, 42 + mi as u32);
             g.set_name("Sofía");

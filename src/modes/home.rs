@@ -38,12 +38,16 @@ pub struct Home {
 impl Home {
     pub fn new(cx: &mut Cx) -> Home {
         let door = |mode, name, color| Door { mode, name, color, hover: Hover::default(), pos: V2::ZERO, r: 1.0 };
+        // Arriba lo de aprender (letras, escribir, números, formas);
+        // abajo lo de explorar (pintar, música, burbujas, abeja).
         let doors = vec![
             door(ModeId::Keys, "Teclado mágico", hex(0xFF7043)),
-            door(ModeId::Paint, "Pintar", hex(0xAB47BC)),
-            door(ModeId::Bubbles, "Burbujas", hex(0x29B6F6)),
+            door(ModeId::Typing, "Escribir", hex(0x26A69A)),
+            door(ModeId::Adding, "Sumar", hex(0xEC407A)),
             door(ModeId::Shapes, "Formas y colores", hex(0xFFCA28)),
+            door(ModeId::Paint, "Pintar", hex(0xAB47BC)),
             door(ModeId::Music, "Música", hex(0x66BB6A)),
+            door(ModeId::Bubbles, "Burbujas", hex(0x29B6F6)),
             door(ModeId::Bee, "La abeja", hex(0xFFA726)),
         ];
         let word = if cx.name.is_empty() { "HOLA".to_string() } else { cx.name.to_uppercase() };
@@ -65,13 +69,21 @@ impl Home {
         h
     }
 
+    fn grid(w: f32, h: f32) -> (usize, usize) {
+        if w >= h {
+            (4, 2)
+        } else {
+            (2, 4)
+        }
+    }
+
     fn layout(&mut self, cx: &Cx) {
         let (w, h) = (cx.w, cx.h);
-        let (cols, rows) = if w >= h { (3, 2) } else { (2, 3) };
+        let (cols, rows) = Home::grid(w, h);
         let top = h * 0.25;
         let cell_w = w / cols as f32;
         let cell_h = (h - top) / rows as f32;
-        let r = (cell_w.min(cell_h) * 0.36).max(30.0);
+        let r = (cell_w.min(cell_h) * 0.37).max(30.0);
         for (i, d) in self.doors.iter_mut().enumerate() {
             let (c, row) = (i % cols, i / cols);
             d.pos = v2((c as f32 + 0.5) * cell_w, top + (row as f32 + 0.5) * cell_h - h * 0.01);
@@ -130,6 +142,25 @@ impl Home {
                 g.emoji("🌸", p + v2(r * 0.25, r * 0.3), r * 0.28, 0.0, 1.0);
                 let b = p + v2((t * 1.3).cos() * r * 0.25, (t * 2.6).sin() * r * 0.12 - r * 0.1);
                 g.emoji_flip("🐝", b, r * 0.4, 0.0, 1.0, (t * 1.3).sin() > 0.0);
+            }
+            ModeId::Typing => {
+                g.emoji("✏️", p + v2(r * 0.18, -r * 0.12), r * 0.42, 0.3, 1.0);
+                for (i, s) in ["M", "A", "M", "Á"].iter().enumerate() {
+                    let x = (i as f32 - 1.5) * r * 0.3;
+                    let y = r * 0.42 + (t * 3.0 + i as f32).sin() * r * 0.03;
+                    g.text(s, p + v2(x, y), r * 0.17, 0.0, hsv(0.45 + i as f32 * 0.12, 0.7, 0.9), 0.15);
+                }
+            }
+            ModeId::Adding => {
+                let s = r * 0.24;
+                g.text("1", p + v2(-r * 0.42, -r * 0.05), s, 0.0, vocab::ROJO.rgb, 0.15);
+                g.text("+", p + v2(-r * 0.14, -r * 0.05), s * 0.85, 0.0, vocab::NARANJO.rgb, 0.15);
+                g.text("2", p + v2(r * 0.14, -r * 0.05), s, 0.0, vocab::AZUL.rgb, 0.15);
+                g.text("=", p + v2(r * 0.42, -r * 0.05), s * 0.85, 0.0, vocab::VERDE.rgb, 0.15);
+                for i in 0..3 {
+                    let x = (i as f32 - 1.0) * r * 0.3;
+                    g.emoji("🍎", p + v2(x, r * 0.42 + (t * 3.0 + i as f32).sin() * r * 0.03), r * 0.15, 0.0, 1.0);
+                }
             }
             ModeId::Home => {}
         }
@@ -237,10 +268,10 @@ impl Activity for Home {
 
     fn key(&mut self, cx: &mut Cx, k: &Key) {
         let n = self.doors.len();
-        let cols = if cx.w >= cx.h { 3 } else { 2 };
+        let (cols, _) = Home::grid(cx.w, cx.h);
         if let Some(dir) = k.arrow() {
             let cur = self.focus.unwrap_or(0) as i32;
-            let step = if dir.x != 0.0 { dir.x as i32 } else { dir.y as i32 * cols };
+            let step = if dir.x != 0.0 { dir.x as i32 } else { dir.y as i32 * cols as i32 };
             let next = if self.focus.is_none() { 0 } else { (cur + step).rem_euclid(n as i32) as usize };
             self.focus = Some(next);
             self.announce(cx, next);

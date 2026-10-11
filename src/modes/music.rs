@@ -2,8 +2,9 @@
 //! - Pasar el mouse por las barras las toca (¡glissando!), clic también.
 //! - Las filas del teclado tocan las barras (fila de arriba = más agudo).
 //! - Arriba se elige instrumento: marimba, piano, campana, guitarra, tambor.
-//! - La ⭐ activa "Estrellita": cualquier tecla toca la siguiente nota de la
-//!   canción, así la niña siente que toca una canción de verdad.
+//! - La ⭐ ("Estrellita") y el 🐥 ("Los pollitos dicen") activan una canción:
+//!   cualquier tecla toca la siguiente nota, así la niña siente que toca una
+//!   canción de verdad. La barra que sigue brilla para aprender la melodía.
 
 use super::{Activity, Hover, IdlePrompt};
 use crate::audio::{Inst, Sfx};
@@ -14,11 +15,31 @@ use crate::math::{hex, hsv, midi, v2, Rgba, V2, WHITE};
 const SCALE: [f32; 8] = [60.0, 62.0, 64.0, 65.0, 67.0, 69.0, 71.0, 72.0];
 const BAR_COLORS: [u32; 8] = [0xE53935, 0xFB8C00, 0xFDD835, 0x43A047, 0x00ACC1, 0x1E88E5, 0x8E24AA, 0xEC407A];
 
-/// Estrellita, ¿dónde estás? (índices de barra)
+/// Estrellita, ¿dónde estás? (índices de barra: 0 = Do ... 7 = Do agudo)
 const ESTRELLITA: [usize; 42] = [
     0, 0, 4, 4, 5, 5, 4, 3, 3, 2, 2, 1, 1, 0, 4, 4, 3, 3, 2, 2, 1, 4, 4, 3, 3, 2, 2, 1, 0, 0, 4, 4, 5, 5, 4, 3, 3, 2, 2,
     1, 1, 0,
 ];
+
+/// Los pollitos dicen (misma melodía que "Alle meine Entchen").
+const POLLITOS: [usize; 22] = [0, 1, 2, 3, 4, 4, 5, 5, 5, 5, 4, 3, 3, 3, 3, 2, 2, 1, 1, 1, 1, 0];
+
+struct Song {
+    name: &'static str,
+    emoji: &'static str,
+    notes: &'static [usize],
+}
+
+const SONGS: [Song; 2] = [
+    Song { name: "Estrellita", emoji: "⭐", notes: &ESTRELLITA },
+    Song { name: "Los pollitos dicen", emoji: "🐥", notes: &POLLITOS },
+];
+
+struct SongButton {
+    pos: V2,
+    r: f32,
+    hover: Hover,
+}
 
 struct Bar {
     pos: V2,
@@ -41,10 +62,9 @@ pub struct Music {
     bars: Vec<Bar>,
     buttons: Vec<InstButton>,
     inst: usize,
-    star_pos: V2,
-    star_r: f32,
-    star_hover: Hover,
-    song: Option<usize>,
+    song_buttons: Vec<SongButton>,
+    /// (canción, nota siguiente)
+    song: Option<(usize, usize)>,
     idle: IdlePrompt,
 }
 
@@ -72,9 +92,7 @@ impl Music {
             bars,
             buttons,
             inst: 0,
-            star_pos: V2::ZERO,
-            star_r: 1.0,
-            star_hover: Hover::default(),
+            song_buttons: SONGS.iter().map(|_| SongButton { pos: V2::ZERO, r: 1.0, hover: Hover::default() }).collect(),
             song: None,
             idle: IdlePrompt::new(12.0),
         };
@@ -92,15 +110,19 @@ impl Music {
             b.pos = v2(left + (i as f32 + 0.5) * cell, cx.h * 0.6);
         }
         let r = (cx.unit() * 0.055).clamp(24.0, 48.0);
-        let nb = self.buttons.len() as f32 + 1.0;
+        let ni = self.buttons.len();
+        let nb = (ni + self.song_buttons.len()) as f32;
         let gap = r * 2.6;
-        let x0 = cx.w * 0.5 - (nb - 1.0) * gap * 0.5;
+        // Un espacio extra separa instrumentos de canciones.
+        let x0 = cx.w * 0.5 - nb * gap * 0.5;
         for (i, b) in self.buttons.iter_mut().enumerate() {
             b.pos = v2(x0 + i as f32 * gap, r * 1.6);
             b.r = r;
         }
-        self.star_pos = v2(x0 + (nb - 1.0) * gap, r * 1.6);
-        self.star_r = r;
+        for (i, b) in self.song_buttons.iter_mut().enumerate() {
+            b.pos = v2(x0 + (ni + i) as f32 * gap + gap, r * 1.6);
+            b.r = r;
+        }
     }
 
     fn play(&mut self, cx: &mut Cx, i: usize, octave: f32) {
@@ -123,34 +145,35 @@ impl Music {
         cx.fx.flash(b.pos, b.half.x * 2.0, b.color.alpha(0.5));
     }
 
-    /// Siguiente nota de Estrellita. Devuelve false si no hay canción activa.
+    /// Siguiente nota de la canción. Devuelve false si no hay canción activa.
     fn song_step(&mut self, cx: &mut Cx) -> bool {
-        let Some(i) = self.song else { return false };
-        let bar = ESTRELLITA[i];
-        self.play(cx, bar, 0.0);
-        if i + 1 >= ESTRELLITA.len() {
+        let Some((s, i)) = self.song else { return false };
+        let song = &SONGS[s];
+        self.play(cx, song.notes[i], 0.0);
+        if i + 1 >= song.notes.len() {
             self.song = None;
             cx.au.sfx(Sfx::Applause, 1.0, cx.w * 0.5);
-            cx.au.say_after(0.8, "¡Bravo! ¡Tocaste Estrellita!");
+            cx.au.say_after(0.8, &format!("¡Bravo! ¡Tocaste {}!", song.name));
             for k in 0..5 {
                 cx.fx.rocket(&mut cx.rng, v2(cx.w * (0.1 + 0.2 * k as f32), cx.h), cx.h * 0.6);
             }
         } else {
-            self.song = Some(i + 1);
+            self.song = Some((s, i + 1));
         }
         true
     }
 
-    fn toggle_song(&mut self, cx: &mut Cx) {
-        if self.song.is_some() {
+    fn toggle_song(&mut self, cx: &mut Cx, s: usize) {
+        let pos = self.song_buttons[s].pos;
+        if matches!(self.song, Some((cur, _)) if cur == s) {
             self.song = None;
             cx.au.say("Música libre.");
         } else {
-            self.song = Some(0);
-            cx.au.say("¡Estrellita! Aprieta cualquier tecla para tocar la canción.");
-            cx.au.sfx(Sfx::Magic, 1.0, self.star_pos.x);
+            self.song = Some((s, 0));
+            cx.au.say(&format!("¡{}! Aprieta cualquier tecla para tocar la canción.", SONGS[s].name));
+            cx.au.sfx(Sfx::Magic, 1.0, pos.x);
         }
-        cx.fx.sparkle(&mut cx.rng, self.star_pos, 16, hsv(0.14, 0.8, 1.0), 60.0);
+        cx.fx.sparkle(&mut cx.rng, pos, 16, hsv(0.14, 0.8, 1.0), 60.0);
     }
 
     fn bar_at(&self, p: V2) -> Option<usize> {
@@ -186,8 +209,14 @@ impl Activity for Music {
             let name = self.buttons[i].name;
             cx.au.say_if_quiet(name);
         }
-        if self.star_hover.update(cx, has_mouse && mouse.dist(self.star_pos) < self.star_r * 1.1) {
-            cx.au.say_if_quiet("Estrellita");
+        let mut song_hover = None;
+        for (i, b) in self.song_buttons.iter_mut().enumerate() {
+            if b.hover.update(cx, has_mouse && mouse.dist(b.pos) < b.r * 1.1) {
+                song_hover = Some(i);
+            }
+        }
+        if let Some(i) = song_hover {
+            cx.au.say_if_quiet(SONGS[i].name);
         }
         for (i, b) in self.buttons.iter().enumerate() {
             let sel = i == self.inst;
@@ -196,17 +225,20 @@ impl Activity for Music {
             cx.g.sticker(Shape::Circle, b.pos, r, 0.0, if sel { hex(0xFFF59D) } else { WHITE.alpha(0.92) });
             cx.g.emoji(b.emoji, b.pos, r * 0.62, if sel { (t * 4.0).sin() * 0.1 } else { 0.0 }, 1.0);
         }
-        let on = self.song.is_some();
-        let sr = self.star_r * (1.0 + 0.15 * self.star_hover.anim + if on { 0.15 + 0.05 * (t * 5.0).sin() } else { 0.0 });
-        if on {
-            cx.g.glow(self.star_pos, sr * 2.2, hsv(0.14, 0.7, 1.0).alpha(0.6));
+        for (i, b) in self.song_buttons.iter().enumerate() {
+            let on = matches!(self.song, Some((s, _)) if s == i);
+            let sr = b.r * (1.0 + 0.15 * b.hover.anim + if on { 0.15 + 0.05 * (t * 5.0).sin() } else { 0.0 });
+            if on {
+                cx.g.glow(b.pos, sr * 2.2, hsv(0.14, 0.7, 1.0).alpha(0.6));
+            }
+            cx.g.shadow(Shape::Circle, b.pos, sr, 0.0, 1.0);
+            cx.g.sticker(Shape::Circle, b.pos, sr, 0.0, if on { hex(0xFFF59D) } else { WHITE.alpha(0.92) });
+            let wiggle = if on { (t * 4.0).sin() * 0.15 } else { 0.0 };
+            cx.g.emoji(SONGS[i].emoji, b.pos, sr * 0.65, wiggle, 1.0);
         }
-        cx.g.shadow(Shape::Circle, self.star_pos, sr, 0.0, 1.0);
-        cx.g.sticker(Shape::Circle, self.star_pos, sr, 0.0, if on { hex(0xFFF59D) } else { WHITE.alpha(0.92) });
-        cx.g.emoji("⭐", self.star_pos, sr * 0.65, t * 0.5, 1.0);
 
         // Barras.
-        let next_bar = self.song.map(|i| ESTRELLITA[i]);
+        let next_bar = self.song.map(|(s, i)| SONGS[s].notes[i]);
         for (i, b) in self.bars.iter_mut().enumerate() {
             b.flash = (b.flash - dt * 2.5).max(0.0);
             let k = 1.0 + b.flash * 0.08;
@@ -243,8 +275,8 @@ impl Activity for Music {
     }
 
     fn down(&mut self, cx: &mut Cx, p: V2, _button: u32) {
-        if p.dist(self.star_pos) < self.star_r * 1.2 {
-            self.toggle_song(cx);
+        if let Some(s) = self.song_buttons.iter().position(|b| p.dist(b.pos) < b.r * 1.2) {
+            self.toggle_song(cx, s);
             return;
         }
         if let Some(i) = self.buttons.iter().position(|b| p.dist(b.pos) < b.r * 1.2) {
@@ -333,11 +365,13 @@ mod tests {
     fn song_finishes_and_celebrates() {
         let mut g = Game::new(1280.0, 720.0, 9);
         let mut m = Music::new(&mut g.cx);
-        m.toggle_song(&mut g.cx);
-        for _ in 0..ESTRELLITA.len() {
-            assert!(m.song_step(&mut g.cx));
+        for (s, song) in SONGS.iter().enumerate() {
+            m.toggle_song(&mut g.cx, s);
+            for _ in 0..song.notes.len() {
+                assert!(m.song_step(&mut g.cx));
+            }
+            assert!(m.song.is_none());
+            assert!(!m.song_step(&mut g.cx));
         }
-        assert!(m.song.is_none());
-        assert!(!m.song_step(&mut g.cx));
     }
 }

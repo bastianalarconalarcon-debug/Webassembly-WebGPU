@@ -3,6 +3,7 @@
 use crate::game::{Cx, Key};
 use crate::math::{approach, V2};
 
+mod adding;
 mod bee;
 mod bubbles;
 mod home;
@@ -10,6 +11,7 @@ mod keys;
 mod music;
 mod paint;
 mod shapes;
+mod typing;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ModeId {
@@ -20,6 +22,8 @@ pub enum ModeId {
     Shapes,
     Music,
     Bee,
+    Typing,
+    Adding,
 }
 
 pub fn make(id: ModeId, cx: &mut Cx) -> Box<dyn Activity> {
@@ -31,6 +35,8 @@ pub fn make(id: ModeId, cx: &mut Cx) -> Box<dyn Activity> {
         ModeId::Shapes => Box::new(shapes::Shapes::new(cx)),
         ModeId::Music => Box::new(music::Music::new(cx)),
         ModeId::Bee => Box::new(bee::Bee::new(cx)),
+        ModeId::Typing => Box::new(typing::Typing::new(cx)),
+        ModeId::Adding => Box::new(adding::Adding::new(cx)),
     }
 }
 
