@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="es-CL">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mi Primer Computador</title>
+<meta name="description" content="Juego para niñas y niños de 3 años: teclado mágico, pintar, burbujas, formas, música y la abeja. Rust + WebAssembly + WebGPU.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='6' y='6' width='52' height='52' rx='14' fill='%23ffcf33' stroke='%231f2a44' stroke-width='5'/%3E%3Ctext x='32' y='45' font-family='Arial' font-weight='bold' font-size='34' text-anchor='middle' fill='%231f2a44'%3EA%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Fredoka:wght@500;600;700&family=Andika:wght@700&display=swap">
+<style>
+  /* Pantalla de juego a todo lo ancho; encima, una tarjeta para papá/mamá. */
+  :root {
+    --sun: #ffcf33;
+    --tomato: #ff5a47;
+    --sky: #2fa8ff;
+    --leaf: #34c37a;
+    --ink: #1f2a44;
+    --ink-soft: #4a5675;
+    --paper: #fffaf0;
+    --line: #e8dcc2;
+    --field: #fff3d6;
+    --display: "Fredoka", "Arial Rounded MT Bold", "Segoe UI", system-ui, sans-serif;
+    --body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+    color-scheme: light;
+  }
+  html, body { height: 100%; margin: 0; }
+  [hidden] { display: none !important; }
+  body {
+    background: var(--field);
+    color: var(--ink);
+    font-family: var(--body);
+    overflow: hidden;
+    overscroll-behavior: none;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: none;
+  }
+  #juego {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    /* Cursor grande: a los 3 años la flechita normal se pierde. */
+    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Cpath d='M6 4 L6 50 L18 39 L26 58 L35 54 L27 35 L44 35 Z' fill='%23ff5a47' stroke='white' stroke-width='4' stroke-linejoin='round'/%3E%3C/svg%3E") 6 4, auto;
+  }
+
+  #portada {
+    position: fixed;
+    inset: 0;
+    overflow-y: auto;
+    padding-block: max(24px, env(safe-area-inset-top, 0px)) max(24px, env(safe-area-inset-bottom, 0px));
+    padding-inline: 16px;
+    display: grid;
+    place-items: center;
+    background:
+      radial-gradient(circle at 12% 18%, var(--sun) 0 70px, transparent 71px),
+      radial-gradient(circle at 88% 14%, var(--sky) 0 46px, transparent 47px),
+      radial-gradient(circle at 92% 86%, var(--leaf) 0 90px, transparent 91px),
+      radial-gradient(circle at 6% 92%, var(--tomato) 0 54px, transparent 55px),
+      var(--field);
+    -webkit-user-select: text;
+    user-select: text;
+    touch-action: auto;
+    z-index: 2;
+  }
+  .tarjeta {
+    width: min(100%, 560px);
+    background: var(--paper);
+    border: 3px solid var(--ink);
+    border-radius: 28px;
+    box-shadow: 8px 8px 0 var(--ink);
+    padding: 28px clamp(18px, 5vw, 36px) 24px;
+    display: grid;
+    gap: 18px;
+  }
+  .marca {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .teclas {
+    display: grid;
+    grid-template-columns: repeat(2, 30px);
+    gap: 5px;
+    flex: none;
+  }
+  .teclas span {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    border: 2.5px solid var(--ink);
+    box-shadow: 0 3px 0 var(--ink);
+    display: grid;
+    place-items: center;
+    font: 700 16px/1 var(--display);
+    color: var(--ink);
+  }
+  .teclas span:nth-child(1) { background: var(--tomato); }
+  .teclas span:nth-child(2) { background: var(--sun); }
+  .teclas span:nth-child(3) { background: var(--sky); }
+  .teclas span:nth-child(4) { background: var(--leaf); }
+  h1 {
+    font: 700 clamp(30px, 7vw, 44px)/1.02 var(--display);
+    margin: 0;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+  .lema {
+    margin: 4px 0 0;
+    color: var(--ink-soft);
+    font-size: 15px;
+  }
+  #jugar {
+    justify-self: center;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font: 700 28px/1 var(--display);
+    color: var(--ink);
+    background: var(--sun);
+    border: 3px solid var(--ink);
+    border-radius: 999px;
+    padding: 14px 34px 14px 18px;
+    box-shadow: 0 6px 0 var(--ink);
+    cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+  #jugar .play {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--tomato);
+    border: 3px solid var(--ink);
+    display: grid;
+    place-items: center;
+  }
+  #jugar .play::after {
+    content: "";
+    border-left: 18px solid #fff;
+    border-top: 12px solid transparent;
+    border-bottom: 12px solid transparent;
+    margin-left: 5px;
+  }
+  #jugar:hover { transform: translateY(-2px); box-shadow: 0 8px 0 var(--ink); }
+  #jugar:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--ink); }
+  #jugar:focus-visible, .campo input:focus-visible, .campo select:focus-visible, .boton:focus-visible {
+    outline: 3px solid var(--sky);
+    outline-offset: 3px;
+  }
+  #jugar[disabled] { opacity: 0.5; cursor: progress; }
+  .ajustes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 16px;
+  }
+  .campo { display: grid; gap: 6px; min-width: 0; }
+  .campo.ancho { grid-column: 1 / -1; }
+  .campo label, .etiqueta {
+    font: 600 12px/1.2 var(--display);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-soft);
+  }
+  .campo input[type="text"], .campo select {
+    font: 400 16px/1.3 var(--body);
+    color: var(--ink);
+    background: #fff;
+    border: 2px solid var(--ink);
+    border-radius: 12px;
+    padding: 9px 12px;
+    min-width: 0;
+  }
+  .fila { display: flex; gap: 8px; min-width: 0; }
+  .fila select { flex: 1; }
+  .boton {
+    font: 600 14px/1 var(--display);
+    color: var(--ink);
+    background: #fff;
+    border: 2px solid var(--ink);
+    border-radius: 12px;
+    padding: 0 12px;
+    cursor: pointer;
+    flex: none;
+  }
+  .campo input[type="range"] { accent-color: var(--tomato); width: 100%; }
+  .check { display: flex; gap: 10px; align-items: flex-start; font-size: 15px; line-height: 1.35; }
+  .check input { width: 20px; height: 20px; accent-color: var(--leaf); flex: none; margin-top: 1px; }
+  .notas {
+    margin: 0;
+    padding: 14px 16px;
+    border-radius: 16px;
+    background: var(--field);
+    border: 2px dashed var(--line);
+    display: grid;
+    gap: 8px;
+    font-size: 14.5px;
+    line-height: 1.45;
+    color: var(--ink);
+  }
+  .notas p { margin: 0; }
+  kbd {
+    font: 700 13px/1 var(--display);
+    border: 2px solid var(--ink);
+    border-bottom-width: 4px;
+    border-radius: 7px;
+    padding: 2px 7px;
+    background: #fff;
+  }
+  #aviso {
+    margin: 0;
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: #ffe1dc;
+    border: 2px solid var(--tomato);
+    font-size: 15px;
+    line-height: 1.45;
+  }
+  @media (max-width: 480px) {
+    .ajustes { grid-template-columns: 1fr; }
+    #jugar { font-size: 24px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #jugar { transition: none; }
+  }
+</style>
+</head>
+<body>
+<canvas id="juego" aria-label="Juego"></canvas>
+
+<main id="portada">
+  <div class="tarjeta">
+    <div class="marca">
+      <div class="teclas" aria-hidden="true"><span>A</span><span>B</span><span>1</span><span>2</span></div>
+      <div>
+        <h1>Mi Primer Computador</h1>
+        <p class="lema">Teclas, mouse, colores y sonidos para explorar sin miedo.</p>
+      </div>
+    </div>
+
+    <p id="aviso" hidden></p>
+
+    <button id="jugar" type="button" disabled><span class="play" aria-hidden="true"></span><span id="jugar-texto">Cargando…</span></button>
+
+    <div class="ajustes">
+      <div class="campo">
+        <label for="nombre">Nombre de la niña o niño</label>
+        <input id="nombre" type="text" maxlength="16" autocomplete="off" placeholder="Opcional">
+      </div>
+      <div class="campo">
+        <label for="volumen">Volumen</label>
+        <input id="volumen" type="range" min="0" max="1" step="0.05" value="0.8">
+      </div>
+      <div class="campo ancho">
+        <label for="voz">Voz</label>
+        <div class="fila">
+          <select id="voz"></select>
+          <button id="probar" class="boton" type="button">Probar</button>
+        </div>
+      </div>
+      <label class="check campo ancho" for="completa">
+        <input id="completa" type="checkbox" checked>
+        <span>Pantalla completa y bloquear teclas especiales (recomendado)</span>
+      </label>
+    </div>
+
+    <div class="notas">
+      <p><span class="etiqueta">Para salir</span><br>Mantén presionada <kbd>Esc</kbd> unos segundos.</p>
+      <p><span class="etiqueta">Mejor voz</span><br>Microsoft Edge en Windows trae voces chilenas naturales (Catalina y Lorenzo). En Chrome también funciona, con voz latinoamericana.</p>
+    </div>
+  </div>
+</main>
+
+<script type="module" src="main.js"></script>
+</body>
+</html>

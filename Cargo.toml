@@ -1,0 +1,20 @@
+[package]
+name = "juego"
+version = "0.1.0"
+edition = "2021"
+description = "Juego educativo para niñas y niños pequeños: Rust + WebAssembly + WebGPU"
+license = "MIT"
+publish = false
+
+[lib]
+# cdylib -> juego.wasm para el navegador; rlib -> permite `cargo test` nativo.
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
